@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Student Progress Search</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f7fa;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 50px;
+    }
+    h1 { color: #333; }
+    .search-box {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    input {
+      padding: 10px;
+      width: 300px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    button {
+      padding: 10px 20px;
+      border: none;
+      background: #007BFF;
+      color: white;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    .result {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0px 2px 8px rgba(0,0,0,0.1);
+      width: 80%;
+      max-width: 800px;
+    }
+    .result p {
+      margin: 5px 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>Search Student Progress</h1>
+  <div class="search-box">
+    <input type="text" id="search" placeholder="Enter Name or Email">
+    <button onclick="searchData()">Search</button>
+  </div>
+  <div id="output" class="result"></div>
+
+  <script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbx-WEJfAWTAFJB-UODpnIhKgT8MuemkK2M9m9C2HnB4qDoM5updMJKqBfdk3gSnmHqQNA/exec"; // Replace with your Apps Script URL
+
+    async function searchData() {
+      const query = document.getElementById("search").value.trim();
+      if (!query) return alert("Please enter a Name or Email");
+
+      const response = await fetch(`${API_URL}?q=${encodeURIComponent(query)}`);
+      const data = await response.json();
+
+      let output = document.getElementById("output");
+      output.innerHTML = "";
+
+      if (data.length === 0) {
+        output.innerHTML = "<p>No results found.</p>";
+      } else {
+        data.forEach(row => {
+          output.innerHTML += `
+            <p><b>Date:</b> ${row.Date}</p>
+            <p><b>Name:</b> ${row.Name}</p>
+            <p><b>Email:</b> ${row.Email}</p>
+            <p><b>Total Classes Attended:</b> ${row["Total Classes Attended"]}</p>
+            <p><b>Physics Questions Attempted:</b> ${row["Physics Questions Attempted"]}</p>
+            <p><b>Chemistry Questions Attempted:</b> ${row["Chemistry Questions Attempted"]}</p>
+            <p><b>Maths Questions Attempted:</b> ${row["Maths Questions Attempted"]}</p>
+            <p><b>Total Tests Taken:</b> ${row["Total Tests Taken"]}</p>
+            <p><b>Study Hours:</b> ${row["Study Hours"]}</p>
+            <hr>
+          `;
+        });
+      }
+    }
+  </script>
+</body>
+</html>
