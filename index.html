@@ -13,11 +13,24 @@
       padding: 50px;
     }
     h1 { color: #333; margin-bottom: 30px; }
-    .search-box { display: flex; gap: 10px; margin-bottom: 30px; }
+    .search-box { display: flex; gap: 10px; margin-bottom: 20px; }
     input { padding: 10px; width: 300px; border: 1px solid #ccc; border-radius: 5px; font-size: 15px; }
     button { padding: 10px 20px; border: none; background: #007BFF; color: white; border-radius: 5px; cursor: pointer; font-size: 15px; }
     button:hover { background: #0056b3; }
     select { padding: 10px; border: 1px solid #ccc; border-radius: 5px; font-size: 15px; }
+    .student-info {
+      margin-bottom: 20px;
+      font-size: 16px;
+      text-align: center;
+    }
+    .student-info span {
+      display: inline-block;
+      background: #e9f2ff;
+      padding: 8px 16px;
+      border-radius: 8px;
+      margin: 4px;
+      font-weight: 500;
+    }
     .table-container {
       width: 90%;
       max-width: 900px;
@@ -43,6 +56,7 @@
     <button onclick="searchData()">Search</button>
   </div>
 
+  <div class="student-info" id="studentInfo"></div>
   <div class="table-container" id="output"></div>
 
   <div style="width:90%; max-width:900px; margin:40px auto;">
@@ -50,7 +64,7 @@
   </div>
 
   <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbwi9Sr0LaNGk-mxeWP8aUX5rBFeFON4aAcRwBxQRLeLSy65sih8ap8zl90ucIJw_3IMMg/exec"; // Replace with your Apps Script link
+    const API_URL = "YOUR_GOOGLE_APPS_SCRIPT_URL_HERE"; // Replace with your Apps Script link
     let chart;
     let allRecords = [];
 
@@ -66,7 +80,9 @@
     async function searchData() {
       const query = document.getElementById("search").value.trim();
       const output = document.getElementById("output");
+      const studentInfo = document.getElementById("studentInfo");
       output.innerHTML = "";
+      studentInfo.innerHTML = "";
 
       if (chart) { chart.destroy(); chart = null; }
 
@@ -92,20 +108,22 @@
         const studentName = data[0][nameKey] || "";
         const studentEmail = data[0][emailKey] || "";
 
+        // Show Name and Email above table
+        studentInfo.innerHTML = `
+          <span>👤 ${studentName}</span>
+          <span>📧 ${studentEmail}</span>
+        `;
+
         // Unique dates
         const uniqueDates = [...new Set(allRecords.map(r => r[dateKey]))].filter(Boolean);
-
-        // Automatically select the latest date (last in the list)
         const latestDate = uniqueDates[uniqueDates.length - 1];
 
-        // Build table with Date dropdown in the first column
+        // Build table with Date dropdown in first column
         const html = `
           <table>
             <thead>
               <tr>
                 <th>Date</th>
-                <th>Name</th>
-                <th>Email</th>
                 <th>Total Classes</th>
                 <th>Physics</th>
                 <th>Chemistry</th>
@@ -121,8 +139,6 @@
                     ${uniqueDates.map(d => `<option value="${d}" ${d === latestDate ? "selected" : ""}>${formatDate(d)}</option>`).join('')}
                   </select>
                 </td>
-                <td>${studentName}</td>
-                <td>${studentEmail}</td>
                 <td id="totalClasses">0</td>
                 <td id="physics">0</td>
                 <td id="chemistry">0</td>
@@ -135,7 +151,7 @@
         `;
         output.innerHTML = html;
 
-        // Show chart and data for the latest date automatically
+        // Show chart and table data for the latest date
         updateTableAndChart(latestDate);
 
       } catch (err) {
@@ -151,7 +167,6 @@
       const row = allRecords.find(r => r[dateKey] === selectedDate);
       if (!row) return;
 
-      // Update table cells
       document.getElementById("totalClasses").innerText = row[findKey(row, "total classes attended")] || 0;
       document.getElementById("physics").innerText = row[findKey(row, "physics questions attempted")] || 0;
       document.getElementById("chemistry").innerText = row[findKey(row, "chemistry questions attempted")] || 0;
@@ -159,7 +174,6 @@
       document.getElementById("tests").innerText = row[findKey(row, "total tests taken")] || 0;
       document.getElementById("studyHours").innerText = row[findKey(row, "study hours")] || 0;
 
-      // Update chart
       const ctx = document.getElementById("progressChart").getContext("2d");
       const chartData = {
         labels: ["Total Classes", "Physics", "Chemistry", "Maths", "Tests", "Study Hours"],
