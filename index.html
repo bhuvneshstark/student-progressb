@@ -281,17 +281,15 @@
             </tr>
           </thead>
           <tbody>
-            ${Array(5).fill(0).map(() => `
-              <tr>
-                <td><div class="skeleton-loader" style="height: 20px;"></div></td>
-                <td><div class="skeleton-loader"></div></td>
-                <td><div class="skeleton-loader"></div></td>
-                <td><div class="skeleton-loader"></div></td>
-                <td><div class="skeleton-loader"></div></td>
-                <td><div class="skeleton-loader"></div></td>
-                <td><div class="skeleton-loader"></div></td>
-              </tr>
-            `).join('')}
+            <tr>
+              <td><div class="skeleton-loader" style="height: 20px;"></div></td>
+              <td><div class="skeleton-loader"></div></td>
+              <td><div class="skeleton-loader"></div></td>
+              <td><div class="skeleton-loader"></div></td>
+              <td><div class="skeleton-loader"></div></td>
+              <td><div class="skeleton-loader"></div></td>
+              <td><div class="skeleton-loader"></div></td>
+            </tr>
           </tbody>
         </table>
       `;
@@ -333,7 +331,6 @@
         }
 
         allRecords = data;
-        filteredRecords = [...data]; // Show all records by default
         const dateKey = findKey(data[0], "date");
         const nameKey = findKey(data[0], "name");
         const emailKey = findKey(data[0], "email");
@@ -375,14 +372,14 @@
           </button>
         `;
 
-        // Build full table with ALL records
-        buildTable();
-        
-        // Auto-select and show latest date data in chart (but keep all records in table)
+        // Get latest date and show only that one record in table
         const latestDate = getLatestDate();
         if (latestDate) {
           selectedRowDate = latestDate;
-          buildTable(); // Rebuild to highlight the selected row
+          // Show only the latest date record in table
+          const latestRecord = allRecords.find(record => record[dateKey] === latestDate);
+          filteredRecords = latestRecord ? [latestRecord] : [];
+          buildTable();
           updateChartForSelectedDate();
         }
 
@@ -438,7 +435,11 @@
       const dateKey = findKey(allRecords[0], "date");
 
       if (!fromDate && !toDate) {
-        filteredRecords = [...allRecords]; // Show all records when no filter
+        // When no dates selected, show only the latest date
+        const latestDate = getLatestDate();
+        const latestRecord = allRecords.find(record => record[dateKey] === latestDate);
+        filteredRecords = latestRecord ? [latestRecord] : [];
+        selectedRowDate = latestDate || '';
       } else {
         filteredRecords = allRecords.filter(record => {
           const recordDate = parseDate(record[dateKey]);
@@ -447,21 +448,28 @@
           
           return recordDate >= from && recordDate <= to;
         });
+        
+        // Auto-select the latest date from filtered results
+        if (filteredRecords.length > 0) {
+          const filteredDates = filteredRecords.map(r => parseDate(r[dateKey]));
+          const latestFilteredTimestamp = Math.max(...filteredDates.map(d => d.getTime()));
+          const latestFilteredRecord = filteredRecords.find(record => 
+            parseDate(record[dateKey]).getTime() === latestFilteredTimestamp
+          );
+          selectedRowDate = latestFilteredRecord ? latestFilteredRecord[dateKey] : '';
+        } else {
+          selectedRowDate = '';
+        }
       }
       
       buildTable();
       
-      // If the selected row is no longer in filtered results, clear selection
-      if (selectedRowDate && !filteredRecords.find(r => r[dateKey] === selectedRowDate)) {
-        selectedRowDate = '';
-        if (chart) {
-          chart.destroy();
-          chart = null;
-        }
-      } else if (selectedRowDate) {
-        // Keep the selection and update chart if selected row is still in filtered results
-        buildTable(); // Rebuild to maintain selection highlight
+      // Update chart if we have a selected date
+      if (selectedRowDate) {
         updateChartForSelectedDate();
+      } else if (chart) {
+        chart.destroy();
+        chart = null;
       }
     }
 
@@ -581,7 +589,7 @@
       // Date range info
       const fromDate = document.getElementById("fromDate").value;
       const toDate = document.getElementById("toDate").value;
-      let dateRangeText = 'All Dates';
+      let dateRangeText = 'Latest Date Only';
       if (fromDate && toDate) {
         dateRangeText = `From ${formatDate(fromDate)} to ${formatDate(toDate)}`;
       } else if (fromDate) {
@@ -620,7 +628,7 @@
       });
 
       // Save PDF
-      const fileName = `${currentStudentName.replace(/\s+/g, '_')}_progress_${fromDate || 'all'}_to_${toDate || 'all'}.pdf`;
+      const fileName = `${currentStudentName.replace(/\s+/g, '_')}_progress_${fromDate || 'latest'}_to_${toDate || 'latest'}.pdf`;
       doc.save(fileName);
     }
 
@@ -636,3 +644,4 @@
   </script>
 </body>
 </html>
+
