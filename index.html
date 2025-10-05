@@ -12,63 +12,17 @@
       align-items: center;
       padding: 50px;
     }
-    h1 {
-      color: #333;
-      margin-bottom: 30px;
-    }
-    .search-box {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 30px;
-    }
-    input {
-      padding: 10px;
-      width: 300px;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-      font-size: 15px;
-    }
-    button {
-      padding: 10px 20px;
-      border: none;
-      background: #007BFF;
-      color: white;
-      border-radius: 5px;
-      cursor: pointer;
-      font-size: 15px;
-    }
-    button:hover {
-      background: #0056b3;
-    }
-    .table-container {
-      width: 90%;
-      max-width: 900px;
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-      overflow-x: auto;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      text-align: left;
-    }
-    th, td {
-      padding: 12px 15px;
-      border-bottom: 1px solid #e0e0e0;
-    }
-    th {
-      background: #007BFF;
-      color: white;
-    }
-    tr:hover {
-      background-color: #f2f8ff;
-    }
-    .no-data {
-      text-align: center;
-      padding: 20px;
-      color: #888;
-    }
+    h1 { color: #333; margin-bottom: 30px; }
+    .search-box { display: flex; gap: 10px; margin-bottom: 30px; }
+    input { padding: 10px; width: 300px; border: 1px solid #ccc; border-radius: 5px; font-size: 15px; }
+    button { padding: 10px 20px; border: none; background: #007BFF; color: white; border-radius: 5px; cursor: pointer; font-size: 15px; }
+    button:hover { background: #0056b3; }
+    .table-container { width: 90%; max-width: 900px; background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; text-align: left; }
+    th, td { padding: 12px 15px; border-bottom: 1px solid #e0e0e0; }
+    th { background: #007BFF; color: white; }
+    tr:hover { background-color: #f2f8ff; }
+    .no-data { text-align: center; padding: 20px; color: #888; }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -87,7 +41,7 @@
   </div>
 
   <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbxSPfr0OYtSv7jPebz0ob8KpsSz7OGqSZ7YHO6iDWOnoW3hNB7kOMmeyUcIEt_5E8fAew/exec"; // Replace with your Google Apps Script URL
+    const API_URL = "https://script.google.com/macros/s/AKfycbxSPfr0OYtSv7jPebz0ob8KpsSz7OGqSZ7YHO6iDWOnoW3hNB7kOMmeyUcIEt_5E8fAew/exec";
     let chart;
 
     async function searchData() {
@@ -114,13 +68,26 @@
 
         const row = data[0];
 
-        const formatDate = dateStr => {
-          const d = new Date(dateStr);
-          return isNaN(d) ? dateStr : d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+        // Helper to find correct key (ignoring spaces and case)
+        const findKey = (obj, key) => Object.keys(obj).find(k => k.trim().toLowerCase() === key.toLowerCase());
+
+        const date = row[findKey(row, "date")] || "";
+        const name = row[findKey(row, "name")] || "";
+        const email = row[findKey(row, "email")] || "";
+        const totalClasses = Number(row[findKey(row, "total classes attended")] || 0);
+        const physics = Number(row[findKey(row, "physics questions attempted")] || 0);
+        const chemistry = Number(row[findKey(row, "chemistry questions attempted")] || 0);
+        const maths = Number(row[findKey(row, "maths questions attempted")] || 0);
+        const tests = Number(row[findKey(row, "total tests taken")] || 0);
+        const studyHours = Number(row[findKey(row, "study hours")] || 0);
+
+        const formatDate = d => {
+          const dt = new Date(d);
+          return isNaN(dt) ? d : dt.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
         };
 
         // Table
-        const html = `
+        output.innerHTML = `
           <table>
             <thead>
               <tr>
@@ -137,42 +104,27 @@
             </thead>
             <tbody>
               <tr>
-                <td>${formatDate(row["Date"])}</td>
-                <td>${row["Name"]}</td>
-                <td>${row["Email"]}</td>
-                <td>${row["Total Classes Attended"] || 0}</td>
-                <td>${row["Physics Questions Attempted"] || 0}</td>
-                <td>${row["Chemistry Questions Attempted"] || 0}</td>
-                <td>${row["Maths Questions Attempted"] || 0}</td>
-                <td>${row["Total Tests Taken"] || 0}</td>
-                <td>${row["Study Hours"] || 0}</td>
+                <td>${formatDate(date)}</td>
+                <td>${name}</td>
+                <td>${email}</td>
+                <td>${totalClasses}</td>
+                <td>${physics}</td>
+                <td>${chemistry}</td>
+                <td>${maths}</td>
+                <td>${tests}</td>
+                <td>${studyHours}</td>
               </tr>
             </tbody>
           </table>
         `;
-        output.innerHTML = html;
 
         // Chart
         const chartData = {
           labels: ["Total Classes", "Physics", "Chemistry", "Maths", "Tests", "Study Hours"],
           datasets: [{
             label: "Student Progress",
-            data: [
-              Number(row["Total Classes Attended"]) || 0,
-              Number(row["Physics Questions Attempted"]) || 0,
-              Number(row["Chemistry Questions Attempted"]) || 0,
-              Number(row["Maths Questions Attempted"]) || 0,
-              Number(row["Total Tests Taken"]) || 0,
-              Number(row["Study Hours"]) || 0
-            ],
-            backgroundColor: [
-              "#007bff",
-              "#28a745",
-              "#ffc107",
-              "#dc3545",
-              "#17a2b8",
-              "#6f42c1"
-            ],
+            data: [totalClasses, physics, chemistry, maths, tests, studyHours],
+            backgroundColor: ["#007bff","#28a745","#ffc107","#dc3545","#17a2b8","#6f42c1"],
             borderRadius: 6
           }]
         };
@@ -181,11 +133,7 @@
           responsive: true,
           plugins: {
             legend: { display: false },
-            title: {
-              display: true,
-              text: `${row["Name"]}'s Progress Overview`,
-              font: { size: 18 }
-            }
+            title: { display: true, text: `${name}'s Progress Overview`, font: { size: 18 } }
           },
           scales: { y: { beginAtZero: true } }
         };
@@ -193,8 +141,8 @@
         if (chart) chart.destroy();
         chart = new Chart(chartCanvas, { type: 'bar', data: chartData, options });
 
-      } catch (error) {
-        console.error(error);
+      } catch (err) {
+        console.error(err);
         output.innerHTML = "<div class='no-data'>Error fetching data</div>";
         if (chart) chart.destroy();
       }
