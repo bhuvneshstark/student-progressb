@@ -46,14 +46,53 @@
     tr:hover { background-color: #f2f8ff; }
     .no-data { text-align: center; padding: 20px; color: #888; }
     
+    /* Download Buttons */
+    .download-buttons {
+      display: flex;
+      gap: 10px;
+      margin: 20px 0;
+      justify-content: center;
+    }
+    
+    .download-btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .csv-btn {
+      background: #28a745;
+      color: white;
+    }
+    
+    .csv-btn:hover {
+      background: #218838;
+    }
+    
+    .pdf-btn {
+      background: #dc3545;
+      color: white;
+    }
+    
+    .pdf-btn:hover {
+      background: #c82333;
+    }
+    
     /* Loading and Animation Styles */
     .pulse {
-      animation: pulse 1.5s ease-in-out infinite;
+      animation: pulse 2s ease-in-out infinite;
     }
     
     @keyframes pulse {
       0% { opacity: 1; }
-      50% { opacity: 0.6; }
+      50% { opacity: 0.8; }
       100% { opacity: 1; }
     }
     
@@ -116,34 +155,39 @@
       60% { transform: translateY(-3px); }
     }
     
-    .shimmer {
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
-      background-size: 200% 100%;
-      animation: shimmer 2s infinite;
+    /* Lighter Pulse Glow Effect */
+    .pulse-glow-subtle {
+      animation: pulseGlowSubtle 4s ease-in-out infinite;
     }
     
-    @keyframes shimmer {
-      0% { background-position: -200% 0; }
-      100% { background-position: 200% 0; }
-    }
-    
-    .pulse-glow {
-      animation: pulseGlow 2s ease-in-out infinite;
-    }
-    
-    @keyframes pulseGlow {
-      0%, 100% { box-shadow: 0 0 5px rgba(0,123,255,0.3); }
-      50% { box-shadow: 0 0 20px rgba(0,123,255,0.6); }
+    @keyframes pulseGlowSubtle {
+      0%, 100% { 
+        box-shadow: 0 0 1px rgba(0,123,255,0.05);
+      }
+      50% { 
+        box-shadow: 0 0 3px rgba(0,123,255,0.15);
+      }
     }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 </head>
 <body>
   <h1 class="fade-in">Student Daily Report</h1>
 
   <div class="search-box fade-in">
-    <input type="text" id="search" placeholder="Enter Name or Email" onkeypress="handleKeyPress(event)" class="pulse-glow">
+    <input type="text" id="search" placeholder="Enter Name or Email" onkeypress="handleKeyPress(event)" class="pulse-glow-subtle">
     <button onclick="searchData()" class="bounce">Search</button>
+  </div>
+
+  <div class="download-buttons" id="downloadButtons" style="display: none;">
+    <button class="download-btn csv-btn" onclick="downloadCSV()">
+      📊 Download CSV
+    </button>
+    <button class="download-btn pdf-btn" onclick="downloadPDF()">
+      📄 Download PDF
+    </button>
   </div>
 
   <div class="student-info" id="studentInfo"></div>
@@ -157,6 +201,8 @@
     const API_URL = "https://script.google.com/macros/s/AKfycbwi9Sr0LaNGk-mxeWP8aUX5rBFeFON4aAcRwBxQRLeLSy65sih8ap8zl90ucIJw_3IMMg/exec";
     let chart;
     let allRecords = [];
+    let currentStudentName = '';
+    let currentStudentEmail = '';
 
     function handleKeyPress(event) {
       if (event.key === 'Enter') {
@@ -207,9 +253,11 @@
       const query = document.getElementById("search").value.trim();
       const output = document.getElementById("output");
       const studentInfo = document.getElementById("studentInfo");
+      const downloadButtons = document.getElementById("downloadButtons");
       
       output.innerHTML = "";
       studentInfo.innerHTML = "";
+      downloadButtons.style.display = "none";
 
       if (chart) { 
         chart.destroy(); 
@@ -238,14 +286,17 @@
         const nameKey = findKey(data[0], "name");
         const emailKey = findKey(data[0], "email");
 
-        const studentName = data[0][nameKey] || "";
-        const studentEmail = data[0][emailKey] || "";
+        currentStudentName = data[0][nameKey] || "";
+        currentStudentEmail = data[0][emailKey] || "";
 
         // Show Name and Email above table with animation
         studentInfo.innerHTML = `
-          <span class="slide-up">👤 ${studentName}</span>
-          <span class="slide-up">📧 ${studentEmail}</span>
+          <span class="slide-up">👤 ${currentStudentName}</span>
+          <span class="slide-up">📧 ${currentStudentEmail}</span>
         `;
+
+        // Show download buttons
+        downloadButtons.style.display = "flex";
 
         // Unique dates
         const uniqueDates = [...new Set(allRecords.map(r => r[dateKey]))].filter(Boolean);
@@ -363,19 +414,102 @@
       return keyMap[cellId] || cellId;
     }
 
+    function downloadCSV() {
+      if (!allRecords.length) return;
+
+      const headers = ['Date', 'Total Classes', 'Physics', 'Chemistry', 'Maths', 'Tests', 'Study Hours'];
+      const csvContent = [
+        `Student: ${currentStudentName}`,
+        `Email: ${currentStudentEmail}`,
+        `Generated: ${new Date().toLocaleDateString()}`,
+        '', // Empty line
+        headers.join(','),
+        ...allRecords.map(record => {
+          const dateKey = findKey(record, "date");
+          return [
+            formatDate(record[dateKey]),
+            record[findKey(record, "total classes attended")] || 0,
+            record[findKey(record, "physics questions attempted")] || 0,
+            record[findKey(record, "chemistry questions attempted")] || 0,
+            record[findKey(record, "maths questions attempted")] || 0,
+            record[findKey(record, "total tests taken")] || 0,
+            record[findKey(record, "study hours")] || 0
+          ].join(',');
+        })
+      ].join('\n');
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `${currentStudentName.replace(/\s+/g, '_')}_progress_report.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    function downloadPDF() {
+      if (!allRecords.length) return;
+
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+
+      // Title
+      doc.setFontSize(20);
+      doc.setTextColor(0, 0, 0);
+      doc.text('Student Progress Report', 105, 15, { align: 'center' });
+
+      // Student Info
+      doc.setFontSize(12);
+      doc.text(`Student: ${currentStudentName}`, 20, 25);
+      doc.text(`Email: ${currentStudentEmail}`, 20, 32);
+      doc.text(`Generated: ${new Date().toLocaleDateString()}`, 20, 39);
+
+      // Table data
+      const tableColumn = ['Date', 'Total Classes', 'Physics', 'Chemistry', 'Maths', 'Tests', 'Study Hours'];
+      const tableRows = [];
+
+      allRecords.forEach(record => {
+        const dateKey = findKey(record, "date");
+        const rowData = [
+          formatDate(record[dateKey]),
+          record[findKey(record, "total classes attended")] || 0,
+          record[findKey(record, "physics questions attempted")] || 0,
+          record[findKey(record, "chemistry questions attempted")] || 0,
+          record[findKey(record, "maths questions attempted")] || 0,
+          record[findKey(record, "total tests taken")] || 0,
+          record[findKey(record, "study hours")] || 0
+        ];
+        tableRows.push(rowData);
+      });
+
+      // Add table to PDF
+      doc.autoTable({
+        head: [tableColumn],
+        body: tableRows,
+        startY: 45,
+        theme: 'grid',
+        styles: { fontSize: 10, cellPadding: 3 },
+        headStyles: { fillColor: [0, 123, 255] }
+      });
+
+      // Save PDF
+      doc.save(`${currentStudentName.replace(/\s+/g, '_')}_progress_report.pdf`);
+    }
+
     // Add initial animations on page load
     document.addEventListener('DOMContentLoaded', function() {
       const searchInput = document.getElementById('search');
       if (searchInput) {
         setTimeout(() => {
-          searchInput.classList.add('pulse-glow');
+          searchInput.classList.add('pulse-glow-subtle');
         }, 1000);
       }
     });
   </script>
 </body>
 </html>
-
 
 
 
