@@ -17,7 +17,6 @@
     input { padding: 10px; width: 300px; border: 1px solid #ccc; border-radius: 5px; font-size: 15px; }
     button { padding: 10px 20px; border: none; background: #007BFF; color: white; border-radius: 5px; cursor: pointer; font-size: 15px; transition: background 0.3s ease; }
     button:hover { background: #0056b3; }
-    button:disabled { background: #6c757d; cursor: not-allowed; }
     select { padding: 10px; border: 1px solid #ccc; border-radius: 5px; font-size: 15px; }
     .student-info {
       margin-bottom: 20px;
@@ -45,13 +44,17 @@
     th, td { padding: 12px 15px; border-bottom: 1px solid #e0e0e0; }
     th { background: #007BFF; color: white; }
     tr:hover { background-color: #f2f8ff; }
+    .no-data { text-align: center; padding: 20px; color: #888; }
     
-    /* Loading and Status Styles */
-    .status-message {
-      text-align: center;
-      padding: 20px;
-      color: #666;
-      font-size: 16px;
+    /* Loading and Animation Styles */
+    .pulse {
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+    
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.6; }
+      100% { opacity: 1; }
     }
     
     .loading-spinner {
@@ -71,32 +74,6 @@
       100% { transform: rotate(360deg); }
     }
     
-    .pulse {
-      animation: pulse 1.5s ease-in-out infinite;
-    }
-    
-    @keyframes pulse {
-      0% { opacity: 1; }
-      50% { opacity: 0.6; }
-      100% { opacity: 1; }
-    }
-    
-    .success-message {
-      color: #28a745;
-      background: #f8fff9;
-      padding: 10px;
-      border-radius: 5px;
-      margin: 10px 0;
-    }
-    
-    .error-message {
-      color: #dc3545;
-      background: #fff5f5;
-      padding: 10px;
-      border-radius: 5px;
-      margin: 10px 0;
-    }
-    
     .skeleton-loader {
       background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
       background-size: 200% 100%;
@@ -110,21 +87,64 @@
       0% { background-position: 200% 0; }
       100% { background-position: -200% 0; }
     }
+    
+    .fade-in {
+      animation: fadeIn 0.5s ease-in;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .slide-up {
+      animation: slideUp 0.4s ease-out;
+    }
+    
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .bounce {
+      animation: bounce 0.6s ease;
+    }
+    
+    @keyframes bounce {
+      0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+      40% { transform: translateY(-5px); }
+      60% { transform: translateY(-3px); }
+    }
+    
+    .shimmer {
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+      background-size: 200% 100%;
+      animation: shimmer 2s infinite;
+    }
+    
+    @keyframes shimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+    
+    .pulse-glow {
+      animation: pulseGlow 2s ease-in-out infinite;
+    }
+    
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 5px rgba(0,123,255,0.3); }
+      50% { box-shadow: 0 0 20px rgba(0,123,255,0.6); }
+    }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-  <h1>Student Daily Report</h1>
+  <h1 class="fade-in">Student Daily Report</h1>
 
-  <div class="search-box">
-    <input type="text" id="search" placeholder="Enter Name or Email" onkeypress="handleKeyPress(event)">
-    <button id="searchBtn" onclick="searchData()">
-      <span id="searchText">Search</span>
-      <span id="searchSpinner" class="loading-spinner" style="display: none;"></span>
-    </button>
+  <div class="search-box fade-in">
+    <input type="text" id="search" placeholder="Enter Name or Email" onkeypress="handleKeyPress(event)" class="pulse-glow">
+    <button onclick="searchData()" class="bounce">Search</button>
   </div>
-
-  <div id="statusMessage" class="status-message"></div>
 
   <div class="student-info" id="studentInfo"></div>
   <div class="table-container" id="output"></div>
@@ -138,32 +158,25 @@
     let chart;
     let allRecords = [];
 
-    // Add keyboard support
     function handleKeyPress(event) {
       if (event.key === 'Enter') {
         searchData();
       }
     }
 
-    function showStatus(message, type = 'info') {
-      const statusEl = document.getElementById('statusMessage');
-      statusEl.innerHTML = '';
-      
-      if (type === 'loading') {
-        statusEl.innerHTML = `<div class="pulse"><span class="loading-spinner"></span>${message}</div>`;
-      } else if (type === 'success') {
-        statusEl.innerHTML = `<div class="success-message">${message}</div>`;
-      } else if (type === 'error') {
-        statusEl.innerHTML = `<div class="error-message">${message}</div>`;
-      } else {
-        statusEl.innerHTML = `<div class="status-message">${message}</div>`;
-      }
+    function findKey(obj, key) {
+      return Object.keys(obj).find(k => k.trim().toLowerCase() === key.toLowerCase());
+    }
+
+    function formatDate(d) {
+      const dt = new Date(d);
+      return isNaN(dt) ? d : dt.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
     }
 
     function showSkeletonLoader() {
       const output = document.getElementById('output');
       output.innerHTML = `
-        <table>
+        <table class="pulse">
           <thead>
             <tr>
               <th>Date</th>
@@ -190,65 +203,33 @@
       `;
     }
 
-    function findKey(obj, key) {
-      return Object.keys(obj).find(k => k.trim().toLowerCase() === key.toLowerCase());
-    }
-
-    function formatDate(d) {
-      const dt = new Date(d);
-      return isNaN(dt) ? d : dt.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
-    }
-
     async function searchData() {
       const query = document.getElementById("search").value.trim();
       const output = document.getElementById("output");
       const studentInfo = document.getElementById("studentInfo");
-      const searchBtn = document.getElementById("searchBtn");
-      const searchText = document.getElementById("searchText");
-      const searchSpinner = document.getElementById("searchSpinner");
-
-      // Reset states
+      
       output.innerHTML = "";
       studentInfo.innerHTML = "";
-      showStatus('');
-      
+
       if (chart) { 
         chart.destroy(); 
         chart = null; 
       }
 
       if (!query) {
-        showStatus('Please enter a Name or Email', 'error');
+        output.innerHTML = "<div class='no-data pulse'>Please enter a Name or Email</div>";
         return;
       }
 
       try {
-        // Show loading states
-        searchBtn.disabled = true;
-        searchText.textContent = 'Searching...';
-        searchSpinner.style.display = 'inline-block';
-        showStatus('Fetching student data...', 'loading');
+        // Show skeleton loader while fetching
         showSkeletonLoader();
 
-        // Simulate network delay for demo (remove in production)
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
         const response = await fetch(`${API_URL}?q=${encodeURIComponent(query)}`);
-        
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
         const data = await response.json();
 
-        // Reset button state
-        searchBtn.disabled = false;
-        searchText.textContent = 'Search';
-        searchSpinner.style.display = 'none';
-
         if (!data || data.length === 0) {
-          showStatus('No student records found for your search', 'error');
-          output.innerHTML = "";
+          output.innerHTML = "<div class='no-data pulse'>No results found</div>";
           return;
         }
 
@@ -260,13 +241,10 @@
         const studentName = data[0][nameKey] || "";
         const studentEmail = data[0][emailKey] || "";
 
-        // Show success message
-        showStatus(`Found ${data.length} record(s) for ${studentName || query}`, 'success');
-
-        // Show Name and Email above table
+        // Show Name and Email above table with animation
         studentInfo.innerHTML = `
-          <span>👤 ${studentName}</span>
-          <span>📧 ${studentEmail}</span>
+          <span class="slide-up">👤 ${studentName}</span>
+          <span class="slide-up">📧 ${studentEmail}</span>
         `;
 
         // Unique dates
@@ -275,7 +253,7 @@
 
         // Build table with Date dropdown in first column
         const html = `
-          <table>
+          <table class="fade-in">
             <thead>
               <tr>
                 <th>Date</th>
@@ -290,16 +268,16 @@
             <tbody>
               <tr>
                 <td>
-                  <select id="dateSelectTable" onchange="updateTableAndChart(this.value)">
+                  <select id="dateSelectTable" onchange="updateTableAndChart(this.value)" class="pulse">
                     ${uniqueDates.map(d => `<option value="${d}" ${d === latestDate ? "selected" : ""}>${formatDate(d)}</option>`).join('')}
                   </select>
                 </td>
-                <td id="totalClasses">0</td>
-                <td id="physics">0</td>
-                <td id="chemistry">0</td>
-                <td id="maths">0</td>
-                <td id="tests">0</td>
-                <td id="studyHours">0</td>
+                <td id="totalClasses" class="pulse">0</td>
+                <td id="physics" class="pulse">0</td>
+                <td id="chemistry" class="pulse">0</td>
+                <td id="maths" class="pulse">0</td>
+                <td id="tests" class="pulse">0</td>
+                <td id="studyHours" class="pulse">0</td>
               </tr>
             </tbody>
           </table>
@@ -310,42 +288,29 @@
         updateTableAndChart(latestDate);
 
       } catch (err) {
-        console.error('Search error:', err);
-        
-        // Reset button state
-        searchBtn.disabled = false;
-        searchText.textContent = 'Search';
-        searchSpinner.style.display = 'none';
-        
-        showStatus('Failed to fetch data. Please check your connection and try again.', 'error');
-        output.innerHTML = "";
-        
+        console.error(err);
+        output.innerHTML = "<div class='no-data pulse'>Error fetching data</div>";
         if (chart) chart.destroy();
       }
     }
 
     function updateTableAndChart(selectedDate) {
-      if (!selectedDate || !allRecords.length) return;
-      
-      showStatus('Updating chart...', 'loading');
-      
+      if (!selectedDate) return;
       const dateKey = findKey(allRecords[0], "date");
       const row = allRecords.find(r => r[dateKey] === selectedDate);
-      
-      if (!row) {
-        showStatus('No data available for selected date', 'error');
-        return;
-      }
+      if (!row) return;
 
-      // Update table data
-      document.getElementById("totalClasses").innerText = row[findKey(row, "total classes attended")] || 0;
-      document.getElementById("physics").innerText = row[findKey(row, "physics questions attempted")] || 0;
-      document.getElementById("chemistry").innerText = row[findKey(row, "chemistry questions attempted")] || 0;
-      document.getElementById("maths").innerText = row[findKey(row, "maths questions attempted")] || 0;
-      document.getElementById("tests").innerText = row[findKey(row, "total tests taken")] || 0;
-      document.getElementById("studyHours").innerText = row[findKey(row, "study hours")] || 0;
+      // Add pulse animation to table cells when updating
+      const cells = ['totalClasses', 'physics', 'chemistry', 'maths', 'tests', 'studyHours'];
+      cells.forEach(cellId => {
+        const cell = document.getElementById(cellId);
+        if (cell) {
+          cell.innerText = row[findKey(row, getCellKey(cellId))] || 0;
+          cell.classList.add('pulse');
+          setTimeout(() => cell.classList.remove('pulse'), 600);
+        }
+      });
 
-      // Create or update chart
       const ctx = document.getElementById("progressChart").getContext("2d");
       const chartData = {
         labels: ["Total Classes", "Physics", "Chemistry", "Maths", "Tests", "Study Hours"],
@@ -368,29 +333,49 @@
         responsive: true,
         plugins: {
           legend: { display: false },
-          title: { display: true, text: `Progress (${formatDate(selectedDate)})`, font: { size: 18 } }
+          title: { 
+            display: true, 
+            text: `Progress (${formatDate(selectedDate)})`, 
+            font: { size: 18 },
+            color: '#333'
+          }
         },
-        scales: { y: { beginAtZero: true } }
+        scales: { y: { beginAtZero: true } },
+        animation: {
+          duration: 1000,
+          easing: 'easeOutQuart'
+        }
       };
 
       if (chart) chart.destroy();
       chart = new Chart(ctx, { type: 'bar', data: chartData, options });
-      
-      showStatus(`Chart updated for ${formatDate(selectedDate)}`, 'success');
-      
-      // Clear success message after 2 seconds
-      setTimeout(() => {
-        showStatus('');
-      }, 2000);
     }
 
-    // Initialize with empty states
-    window.addEventListener('DOMContentLoaded', function() {
-      showStatus('Enter a student name or email to search', 'info');
+    function getCellKey(cellId) {
+      const keyMap = {
+        'totalClasses': 'total classes attended',
+        'physics': 'physics questions attempted',
+        'chemistry': 'chemistry questions attempted',
+        'maths': 'maths questions attempted',
+        'tests': 'total tests taken',
+        'studyHours': 'study hours'
+      };
+      return keyMap[cellId] || cellId;
+    }
+
+    // Add initial animations on page load
+    document.addEventListener('DOMContentLoaded', function() {
+      const searchInput = document.getElementById('search');
+      if (searchInput) {
+        setTimeout(() => {
+          searchInput.classList.add('pulse-glow');
+        }, 1000);
+      }
     });
   </script>
 </body>
 </html>
+
 
 
 
