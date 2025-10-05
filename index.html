@@ -17,6 +17,13 @@
     input { padding: 10px; width: 300px; border: 1px solid #ccc; border-radius: 5px; font-size: 15px; }
     button { padding: 10px 20px; border: none; background: #007BFF; color: white; border-radius: 5px; cursor: pointer; font-size: 15px; }
     button:hover { background: #0056b3; }
+    select {
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      font-size: 15px;
+      margin-top: 15px;
+    }
     .table-container { width: 90%; max-width: 900px; background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); overflow-x: auto; }
     table { width: 100%; border-collapse: collapse; text-align: left; }
     th, td { padding: 12px 15px; border-bottom: 1px solid #e0e0e0; }
@@ -34,6 +41,7 @@
     <button onclick="searchData()">Search</button>
   </div>
 
+  <div id="dateSelectorContainer"></div>
   <div class="table-container" id="output"></div>
 
   <div style="width:90%; max-width:900px; margin:40px auto;">
@@ -43,12 +51,15 @@
   <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbxSPfr0OYtSv7jPebz0ob8KpsSz7OGqSZ7YHO6iDWOnoW3hNB7kOMmeyUcIEt_5E8fAew/exec";
     let chart;
+    let allRecords = []; // store multiple entries for same student
 
     async function searchData() {
       const query = document.getElementById("search").value.trim();
       const output = document.getElementById("output");
       const chartCanvas = document.getElementById("progressChart").getContext("2d");
+      const dateSelectorContainer = document.getElementById("dateSelectorContainer");
       output.innerHTML = "";
+      dateSelectorContainer.innerHTML = "";
 
       if (!query) {
         output.innerHTML = "<div class='no-data'>Please enter a Name or Email</div>";
@@ -66,86 +77,113 @@
           return;
         }
 
-        const row = data[0];
+        allRecords = data;
+        console.log("✅ Found Records:", allRecords);
 
-        // Helper to find correct key (ignoring spaces and case)
-        const findKey = (obj, key) => Object.keys(obj).find(k => k.trim().toLowerCase() === key.toLowerCase());
-
-        const date = row[findKey(row, "date")] || "";
-        const name = row[findKey(row, "name")] || "";
-        const email = row[findKey(row, "email")] || "";
-        const totalClasses = Number(row[findKey(row, "total classes attended")] || 0);
-        const physics = Number(row[findKey(row, "physics questions attempted")] || 0);
-        const chemistry = Number(row[findKey(row, "chemistry questions attempted")] || 0);
-        const maths = Number(row[findKey(row, "maths questions attempted")] || 0);
-        const tests = Number(row[findKey(row, "total tests taken")] || 0);
-        const studyHours = Number(row[findKey(row, "study hours")] || 0);
-
-        const formatDate = d => {
-          const dt = new Date(d);
-          return isNaN(dt) ? d : dt.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
-        };
-
-        // Table
-        output.innerHTML = `
-          <table>
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Total Classes</th>
-                <th>Physics</th>
-                <th>Chemistry</th>
-                <th>Maths</th>
-                <th>Tests</th>
-                <th>Study Hours</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>${formatDate(date)}</td>
-                <td>${name}</td>
-                <td>${email}</td>
-                <td>${totalClasses}</td>
-                <td>${physics}</td>
-                <td>${chemistry}</td>
-                <td>${maths}</td>
-                <td>${tests}</td>
-                <td>${studyHours}</td>
-              </tr>
-            </tbody>
-          </table>
-        `;
-
-        // Chart
-        const chartData = {
-          labels: ["Total Classes", "Physics", "Chemistry", "Maths", "Tests", "Study Hours"],
-          datasets: [{
-            label: "Student Progress",
-            data: [totalClasses, physics, chemistry, maths, tests, studyHours],
-            backgroundColor: ["#007bff","#28a745","#ffc107","#dc3545","#17a2b8","#6f42c1"],
-            borderRadius: 6
-          }]
-        };
-
-        const options = {
-          responsive: true,
-          plugins: {
-            legend: { display: false },
-            title: { display: true, text: `${name}'s Progress Overview`, font: { size: 18 } }
-          },
-          scales: { y: { beginAtZero: true } }
-        };
-
-        if (chart) chart.destroy();
-        chart = new Chart(chartCanvas, { type: 'bar', data: chartData, options });
+        if (data.length > 1) {
+          // Show dropdown if multiple records found
+          const selectHTML = `
+            <label for="dateSelect"><strong>Select Date:</strong></label>
+            <select id="dateSelect" onchange="showRecordByDate(this.value)">
+              <option value="">-- Choose a Date --</option>
+              ${data.map(r => `<option value="${r['Date']}">${formatDate(r['Date'])}</option>`).join('')}
+            </select>
+          `;
+          dateSelectorContainer.innerHTML = selectHTML;
+        } else {
+          // Only one record
+          showRecord(data[0]);
+        }
 
       } catch (err) {
         console.error(err);
         output.innerHTML = "<div class='no-data'>Error fetching data</div>";
         if (chart) chart.destroy();
       }
+    }
+
+    function formatDate(d) {
+      const dt = new Date(d);
+      return isNaN(dt) ? d : dt.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+    }
+
+    function findKey(obj, key) {
+      return Object.keys(obj).find(k => k.trim().toLowerCase() === key.toLowerCase());
+    }
+
+    function showRecordByDate(selectedDate) {
+      const record = allRecords.find(r => r[findKey(r, "date")] === selectedDate);
+      if (record) showRecord(record);
+    }
+
+    function showRecord(row) {
+      const output = document.getElementById("output");
+      const chartCanvas = document.getElementById("progressChart").getContext("2d");
+
+      const date = row[findKey(row, "date")] || "";
+      const name = row[findKey(row, "name")] || "";
+      const email = row[findKey(row, "email")] || "";
+      const totalClasses = Number(row[findKey(row, "total classes attended")] || 0);
+      const physics = Number(row[findKey(row, "physics questions attempted")] || 0);
+      const chemistry = Number(row[findKey(row, "chemistry questions attempted")] || 0);
+      const maths = Number(row[findKey(row, "maths questions attempted")] || 0);
+      const tests = Number(row[findKey(row, "total tests taken")] || 0);
+      const studyHours = Number(row[findKey(row, "study hours")] || 0);
+
+      // Table
+      output.innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Total Classes</th>
+              <th>Physics</th>
+              <th>Chemistry</th>
+              <th>Maths</th>
+              <th>Tests</th>
+              <th>Study Hours</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>${formatDate(date)}</td>
+              <td>${name}</td>
+              <td>${email}</td>
+              <td>${totalClasses}</td>
+              <td>${physics}</td>
+              <td>${chemistry}</td>
+              <td>${maths}</td>
+              <td>${tests}</td>
+              <td>${studyHours}</td>
+            </tr>
+          </tbody>
+        </table>
+      `;
+
+      // Chart
+      const chartData = {
+        labels: ["Total Classes", "Physics", "Chemistry", "Maths", "Tests", "Study Hours"],
+        datasets: [{
+          label: "Student Progress",
+          data: [totalClasses, physics, chemistry, maths, tests, studyHours],
+          backgroundColor: ["#007bff","#28a745","#ffc107","#dc3545","#17a2b8","#6f42c1"],
+          borderRadius: 6
+        }]
+      };
+
+      const options = {
+        responsive: true,
+        plugins: {
+          legend: { display: false },
+          title: { display: true, text: `${name}'s Progress (${formatDate(date)})`, font: { size: 18 } }
+        },
+        scales: { y: { beginAtZero: true } }
+      };
+
+      if (chart) chart.destroy();
+      chart = new Chart(chartCanvas, { type: 'bar', data: chartData, options });
     }
   </script>
 </body>
