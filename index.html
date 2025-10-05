@@ -46,7 +46,7 @@
       border-radius: 12px;
       box-shadow: 0 2px 10px rgba(0,0,0,0.1);
       overflow-x: auto;
-      margin-bottom: 50px; /* 🧩 Added space before chart */
+      margin-bottom: 50px; /* extra space for chart */
     }
     table { width: 100%; border-collapse: collapse; text-align: left; }
     th, td { padding: 12px 15px; border-bottom: 1px solid #e0e0e0; }
@@ -73,7 +73,7 @@
   </div>
 
   <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbxSPfr0OYtSv7jPebz0ob8KpsSz7OGqSZ7YHO6iDWOnoW3hNB7kOMmeyUcIEt_5E8fAew/exec";
+    const API_URL = "YOUR_GOOGLE_APPS_SCRIPT_WEBAPP_URL"; // ← Replace this with your Apps Script link
     let chart;
     let allRecords = [];
 
@@ -83,7 +83,10 @@
 
     function formatDate(d) {
       const dt = new Date(d);
-      return isNaN(dt) ? d : dt.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+      if (!isNaN(dt)) {
+        return dt.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+      }
+      return d;
     }
 
     async function searchData() {
@@ -112,22 +115,24 @@
         }
 
         allRecords = data;
-        console.log("✅ Records found:", allRecords);
-
         const dateKey = findKey(allRecords[0], "date");
         const nameKey = findKey(allRecords[0], "name");
         const emailKey = findKey(allRecords[0], "email");
 
+        // ✅ Collect all unique date values (even if multiple records exist)
+        const uniqueDates = [...new Set(allRecords.map(r => r[dateKey]))].filter(Boolean);
+
+        // Build dropdown
         const selectHTML = `
           <label for="dateSelect"><strong>Select Date:</strong></label><br>
           <select id="dateSelect" onchange="showRecordByDate(this.value)">
             <option value="">-- Choose a Date --</option>
-            ${data.map(r => `<option value="${r[dateKey]}">${formatDate(r[dateKey])}</option>`).join('')}
+            ${uniqueDates.map(d => `<option value="${d}">${formatDate(d)}</option>`).join('')}
           </select>
         `;
         dateSelectorContainer.innerHTML = selectHTML;
 
-        // Show Name and Email immediately
+        // Show Name and Email
         const studentName = data[0][nameKey] || "";
         const studentEmail = data[0][emailKey] || "";
         studentInfo.innerHTML = `
@@ -154,8 +159,6 @@
       const chartCanvas = document.getElementById("progressChart").getContext("2d");
 
       const date = row[findKey(row, "date")] || "";
-      const name = row[findKey(row, "name")] || "";
-      const email = row[findKey(row, "email")] || "";
       const totalClasses = Number(row[findKey(row, "total classes attended")] || 0);
       const physics = Number(row[findKey(row, "physics questions attempted")] || 0);
       const chemistry = Number(row[findKey(row, "chemistry questions attempted")] || 0);
@@ -163,7 +166,6 @@
       const tests = Number(row[findKey(row, "total tests taken")] || 0);
       const studyHours = Number(row[findKey(row, "study hours")] || 0);
 
-      // Table
       output.innerHTML = `
         <table>
           <thead>
@@ -191,7 +193,7 @@
         </table>
       `;
 
-      // Chart
+      // Chart setup
       const chartData = {
         labels: ["Total Classes", "Physics", "Chemistry", "Maths", "Tests", "Study Hours"],
         datasets: [{
@@ -206,7 +208,7 @@
         responsive: true,
         plugins: {
           legend: { display: false },
-          title: { display: true, text: `${name}'s Progress (${formatDate(date)})`, font: { size: 18 } }
+          title: { display: true, text: `Progress (${formatDate(date)})`, font: { size: 18 } }
         },
         scales: { y: { beginAtZero: true } }
       };
