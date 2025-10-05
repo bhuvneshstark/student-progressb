@@ -15,8 +15,9 @@
     h1 { color: #333; margin-bottom: 30px; }
     .search-box { display: flex; gap: 10px; margin-bottom: 20px; }
     input { padding: 10px; width: 300px; border: 1px solid #ccc; border-radius: 5px; font-size: 15px; }
-    button { padding: 10px 20px; border: none; background: #007BFF; color: white; border-radius: 5px; cursor: pointer; font-size: 15px; }
+    button { padding: 10px 20px; border: none; background: #007BFF; color: white; border-radius: 5px; cursor: pointer; font-size: 15px; transition: background 0.3s ease; }
     button:hover { background: #0056b3; }
+    button:disabled { background: #6c757d; cursor: not-allowed; }
     select { padding: 10px; border: 1px solid #ccc; border-radius: 5px; font-size: 15px; }
     .student-info {
       margin-bottom: 20px;
@@ -38,13 +39,77 @@
       border-radius: 12px;
       box-shadow: 0 2px 10px rgba(0,0,0,0.1);
       overflow-x: auto;
-      margin-bottom: 50px; /* extra space for chart */
+      margin-bottom: 50px;
     }
     table { width: 100%; border-collapse: collapse; text-align: left; }
     th, td { padding: 12px 15px; border-bottom: 1px solid #e0e0e0; }
     th { background: #007BFF; color: white; }
     tr:hover { background-color: #f2f8ff; }
-    .no-data { text-align: center; padding: 20px; color: #888; }
+    
+    /* Loading and Status Styles */
+    .status-message {
+      text-align: center;
+      padding: 20px;
+      color: #666;
+      font-size: 16px;
+    }
+    
+    .loading-spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #007BFF;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-right: 10px;
+      vertical-align: middle;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .pulse {
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+    
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.6; }
+      100% { opacity: 1; }
+    }
+    
+    .success-message {
+      color: #28a745;
+      background: #f8fff9;
+      padding: 10px;
+      border-radius: 5px;
+      margin: 10px 0;
+    }
+    
+    .error-message {
+      color: #dc3545;
+      background: #fff5f5;
+      padding: 10px;
+      border-radius: 5px;
+      margin: 10px 0;
+    }
+    
+    .skeleton-loader {
+      background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+      background-size: 200% 100%;
+      animation: loading 1.5s infinite;
+      border-radius: 4px;
+      height: 20px;
+      margin: 8px 0;
+    }
+    
+    @keyframes loading {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -52,9 +117,14 @@
   <h1>Student Daily Report</h1>
 
   <div class="search-box">
-    <input type="text" id="search" placeholder="Enter Name or Email">
-    <button onclick="searchData()">Search</button>
+    <input type="text" id="search" placeholder="Enter Name or Email" onkeypress="handleKeyPress(event)">
+    <button id="searchBtn" onclick="searchData()">
+      <span id="searchText">Search</span>
+      <span id="searchSpinner" class="loading-spinner" style="display: none;"></span>
+    </button>
   </div>
+
+  <div id="statusMessage" class="status-message"></div>
 
   <div class="student-info" id="studentInfo"></div>
   <div class="table-container" id="output"></div>
@@ -64,9 +134,61 @@
   </div>
 
   <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbwi9Sr0LaNGk-mxeWP8aUX5rBFeFON4aAcRwBxQRLeLSy65sih8ap8zl90ucIJw_3IMMg/exec"; // Replace with your Apps Script link
+    const API_URL = "https://script.google.com/macros/s/AKfycbwi9Sr0LaNGk-mxeWP8aUX5rBFeFON4aAcRwBxQRLeLSy65sih8ap8zl90ucIJw_3IMMg/exec";
     let chart;
     let allRecords = [];
+
+    // Add keyboard support
+    function handleKeyPress(event) {
+      if (event.key === 'Enter') {
+        searchData();
+      }
+    }
+
+    function showStatus(message, type = 'info') {
+      const statusEl = document.getElementById('statusMessage');
+      statusEl.innerHTML = '';
+      
+      if (type === 'loading') {
+        statusEl.innerHTML = `<div class="pulse"><span class="loading-spinner"></span>${message}</div>`;
+      } else if (type === 'success') {
+        statusEl.innerHTML = `<div class="success-message">${message}</div>`;
+      } else if (type === 'error') {
+        statusEl.innerHTML = `<div class="error-message">${message}</div>`;
+      } else {
+        statusEl.innerHTML = `<div class="status-message">${message}</div>`;
+      }
+    }
+
+    function showSkeletonLoader() {
+      const output = document.getElementById('output');
+      output.innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Total Classes</th>
+              <th>Physics</th>
+              <th>Chemistry</th>
+              <th>Maths</th>
+              <th>Tests</th>
+              <th>Study Hours</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><div class="skeleton-loader" style="height: 30px;"></div></td>
+              <td><div class="skeleton-loader"></div></td>
+              <td><div class="skeleton-loader"></div></td>
+              <td><div class="skeleton-loader"></div></td>
+              <td><div class="skeleton-loader"></div></td>
+              <td><div class="skeleton-loader"></div></td>
+              <td><div class="skeleton-loader"></div></td>
+            </tr>
+          </tbody>
+        </table>
+      `;
+    }
 
     function findKey(obj, key) {
       return Object.keys(obj).find(k => k.trim().toLowerCase() === key.toLowerCase());
@@ -81,22 +203,52 @@
       const query = document.getElementById("search").value.trim();
       const output = document.getElementById("output");
       const studentInfo = document.getElementById("studentInfo");
+      const searchBtn = document.getElementById("searchBtn");
+      const searchText = document.getElementById("searchText");
+      const searchSpinner = document.getElementById("searchSpinner");
+
+      // Reset states
       output.innerHTML = "";
       studentInfo.innerHTML = "";
-
-      if (chart) { chart.destroy(); chart = null; }
+      showStatus('');
+      
+      if (chart) { 
+        chart.destroy(); 
+        chart = null; 
+      }
 
       if (!query) {
-        output.innerHTML = "<div class='no-data'>Please enter a Name or Email</div>";
+        showStatus('Please enter a Name or Email', 'error');
         return;
       }
 
       try {
+        // Show loading states
+        searchBtn.disabled = true;
+        searchText.textContent = 'Searching...';
+        searchSpinner.style.display = 'inline-block';
+        showStatus('Fetching student data...', 'loading');
+        showSkeletonLoader();
+
+        // Simulate network delay for demo (remove in production)
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
         const response = await fetch(`${API_URL}?q=${encodeURIComponent(query)}`);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
         const data = await response.json();
 
+        // Reset button state
+        searchBtn.disabled = false;
+        searchText.textContent = 'Search';
+        searchSpinner.style.display = 'none';
+
         if (!data || data.length === 0) {
-          output.innerHTML = "<div class='no-data'>No results found</div>";
+          showStatus('No student records found for your search', 'error');
+          output.innerHTML = "";
           return;
         }
 
@@ -107,6 +259,9 @@
 
         const studentName = data[0][nameKey] || "";
         const studentEmail = data[0][emailKey] || "";
+
+        // Show success message
+        showStatus(`Found ${data.length} record(s) for ${studentName || query}`, 'success');
 
         // Show Name and Email above table
         studentInfo.innerHTML = `
@@ -155,18 +310,34 @@
         updateTableAndChart(latestDate);
 
       } catch (err) {
-        console.error(err);
-        output.innerHTML = "<div class='no-data'>Error fetching data</div>";
+        console.error('Search error:', err);
+        
+        // Reset button state
+        searchBtn.disabled = false;
+        searchText.textContent = 'Search';
+        searchSpinner.style.display = 'none';
+        
+        showStatus('Failed to fetch data. Please check your connection and try again.', 'error');
+        output.innerHTML = "";
+        
         if (chart) chart.destroy();
       }
     }
 
     function updateTableAndChart(selectedDate) {
-      if (!selectedDate) return;
+      if (!selectedDate || !allRecords.length) return;
+      
+      showStatus('Updating chart...', 'loading');
+      
       const dateKey = findKey(allRecords[0], "date");
       const row = allRecords.find(r => r[dateKey] === selectedDate);
-      if (!row) return;
+      
+      if (!row) {
+        showStatus('No data available for selected date', 'error');
+        return;
+      }
 
+      // Update table data
       document.getElementById("totalClasses").innerText = row[findKey(row, "total classes attended")] || 0;
       document.getElementById("physics").innerText = row[findKey(row, "physics questions attempted")] || 0;
       document.getElementById("chemistry").innerText = row[findKey(row, "chemistry questions attempted")] || 0;
@@ -174,6 +345,7 @@
       document.getElementById("tests").innerText = row[findKey(row, "total tests taken")] || 0;
       document.getElementById("studyHours").innerText = row[findKey(row, "study hours")] || 0;
 
+      // Create or update chart
       const ctx = document.getElementById("progressChart").getContext("2d");
       const chartData = {
         labels: ["Total Classes", "Physics", "Chemistry", "Maths", "Tests", "Study Hours"],
@@ -203,10 +375,23 @@
 
       if (chart) chart.destroy();
       chart = new Chart(ctx, { type: 'bar', data: chartData, options });
+      
+      showStatus(`Chart updated for ${formatDate(selectedDate)}`, 'success');
+      
+      // Clear success message after 2 seconds
+      setTimeout(() => {
+        showStatus('');
+      }, 2000);
     }
+
+    // Initialize with empty states
+    window.addEventListener('DOMContentLoaded', function() {
+      showStatus('Enter a student name or email to search', 'info');
+    });
   </script>
 </body>
 </html>
+
 
 
 
