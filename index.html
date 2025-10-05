@@ -53,6 +53,16 @@
     let chart;
     let allRecords = [];
 
+    // Utility function to find key case-insensitively
+    function findKey(obj, key) {
+      return Object.keys(obj).find(k => k.trim().toLowerCase() === key.toLowerCase());
+    }
+
+    function formatDate(d) {
+      const dt = new Date(d);
+      return isNaN(dt) ? d : dt.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+    }
+
     async function searchData() {
       const query = document.getElementById("search").value.trim();
       const output = document.getElementById("output");
@@ -79,12 +89,15 @@
         allRecords = data;
         console.log("✅ Records found:", allRecords);
 
+        // Get correct "Date" key dynamically
+        const dateKey = findKey(allRecords[0], "date");
+
         // Create Date Dropdown
         const selectHTML = `
           <label for="dateSelect"><strong>Select Date:</strong></label><br>
           <select id="dateSelect" onchange="showRecordByDate(this.value)">
             <option value="">-- Choose a Date --</option>
-            ${data.map(r => `<option value="${r['Date']}">${formatDate(r['Date'])}</option>`).join('')}
+            ${data.map(r => `<option value="${r[dateKey]}">${formatDate(r[dateKey])}</option>`).join('')}
           </select>
         `;
         dateSelectorContainer.innerHTML = selectHTML;
@@ -96,18 +109,10 @@
       }
     }
 
-    function formatDate(d) {
-      const dt = new Date(d);
-      return isNaN(dt) ? d : dt.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
-    }
-
-    function findKey(obj, key) {
-      return Object.keys(obj).find(k => k.trim().toLowerCase() === key.toLowerCase());
-    }
-
     function showRecordByDate(selectedDate) {
       if (!selectedDate) return;
-      const record = allRecords.find(r => r[findKey(r, "date")] === selectedDate);
+      const dateKey = findKey(allRecords[0], "date");
+      const record = allRecords.find(r => r[dateKey] === selectedDate);
       if (record) showRecord(record);
     }
 
@@ -115,6 +120,7 @@
       const output = document.getElementById("output");
       const chartCanvas = document.getElementById("progressChart").getContext("2d");
 
+      // Detect all keys safely
       const date = row[findKey(row, "date")] || "";
       const name = row[findKey(row, "name")] || "";
       const email = row[findKey(row, "email")] || "";
@@ -183,6 +189,7 @@
   </script>
 </body>
 </html>
+
 
 
 
