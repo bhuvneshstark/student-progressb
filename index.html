@@ -1,5 +1,7 @@
 <div class="table-container" id="output"></div>
-<canvas id="progressChart"></canvas>
+<div style="width:90%; max-width:900px; margin:40px auto;">
+  <canvas id="progressChart"></canvas>
+</div>
 
 <script>
 let chart;
@@ -20,11 +22,7 @@ async function searchData() {
   const output = document.getElementById("output");
   output.innerHTML = "";
 
-  // Remove previous chart
-  if (chart) {
-    chart.destroy();
-    chart = null;
-  }
+  if (chart) { chart.destroy(); chart = null; }
 
   if (!query) {
     output.innerHTML = "<div class='no-data'>Please enter a Name or Email</div>";
@@ -47,9 +45,10 @@ async function searchData() {
   const studentName = data[0][nameKey] || "";
   const studentEmail = data[0][emailKey] || "";
 
-  // Build table with date dropdown in Date column
+  // Unique dates
   const uniqueDates = [...new Set(allRecords.map(r => r[dateKey]))].filter(Boolean);
 
+  // Build table
   const html = `
     <table>
       <thead>
@@ -89,7 +88,7 @@ async function searchData() {
   output.innerHTML = html;
 }
 
-// Update table row and chart when a date is selected
+// Update numeric data and chart when a date is selected
 function updateTableAndChart(selectedDate) {
   if (!selectedDate) return;
 
@@ -97,7 +96,7 @@ function updateTableAndChart(selectedDate) {
   const row = allRecords.find(r => r[dateKey] === selectedDate);
   if (!row) return;
 
-  // Update table values
+  // Update table cells
   document.getElementById("totalClasses").innerText = row[findKey(row, "total classes attended")] || 0;
   document.getElementById("physics").innerText = row[findKey(row, "physics questions attempted")] || 0;
   document.getElementById("chemistry").innerText = row[findKey(row, "chemistry questions attempted")] || 0;
@@ -106,7 +105,7 @@ function updateTableAndChart(selectedDate) {
   document.getElementById("studyHours").innerText = row[findKey(row, "study hours")] || 0;
 
   // Update chart
-  const chartCanvas = document.getElementById("progressChart").getContext("2d");
+  const ctx = document.getElementById("progressChart").getContext("2d");
   const chartData = {
     labels: ["Total Classes", "Physics", "Chemistry", "Maths", "Tests", "Study Hours"],
     datasets: [{
@@ -134,9 +133,10 @@ function updateTableAndChart(selectedDate) {
   };
 
   if (chart) chart.destroy();
-  chart = new Chart(chartCanvas, { type: 'bar', data: chartData, options });
+  chart = new Chart(ctx, { type: 'bar', data: chartData, options });
 }
-</script>
+
+
 
 
 
