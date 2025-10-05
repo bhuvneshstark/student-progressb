@@ -17,7 +17,6 @@
     input { padding: 10px; width: 300px; border: 1px solid #ccc; border-radius: 5px; font-size: 15px; }
     button { padding: 10px 20px; border: none; background: #007BFF; color: white; border-radius: 5px; cursor: pointer; font-size: 15px; transition: background 0.3s ease; }
     button:hover { background: #0056b3; }
-    select { padding: 10px; border: 1px solid #ccc; border-radius: 5px; font-size: 15px; }
     
     /* Student Info Table */
     .student-info-container {
@@ -67,6 +66,114 @@
       font-weight: 600;
       color: #333;
     }
+    
+    /* Calendar Styles */
+    .calendar-container {
+      position: relative;
+      display: inline-block;
+    }
+    
+    .calendar-input {
+      padding: 10px;
+      width: 150px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      font-size: 15px;
+      cursor: pointer;
+      background: white;
+    }
+    
+    .calendar-dropdown {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      background: white;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      z-index: 1000;
+      padding: 15px;
+      min-width: 280px;
+      display: none;
+    }
+    
+    .calendar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    
+    .calendar-nav {
+      background: none;
+      border: none;
+      font-size: 16px;
+      cursor: pointer;
+      padding: 5px 10px;
+      border-radius: 4px;
+    }
+    
+    .calendar-nav:hover {
+      background: #f0f0f0;
+    }
+    
+    .calendar-month {
+      font-weight: 600;
+      color: #333;
+    }
+    
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 5px;
+    }
+    
+    .calendar-day-header {
+      text-align: center;
+      font-weight: 600;
+      color: #666;
+      font-size: 12px;
+      padding: 5px;
+    }
+    
+    .calendar-day {
+      text-align: center;
+      padding: 8px 5px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    
+    .calendar-day:hover {
+      background: #f0f0f0;
+    }
+    
+    .calendar-day.available {
+      background: #e3f2fd;
+      color: #007BFF;
+      font-weight: 500;
+    }
+    
+    .calendar-day.available:hover {
+      background: #007BFF;
+      color: white;
+    }
+    
+    .calendar-day.selected {
+      background: #007BFF;
+      color: white;
+      font-weight: 600;
+    }
+    
+    .calendar-day.disabled {
+      color: #ccc;
+      cursor: not-allowed;
+    }
+    
+    .calendar-day.other-month {
+      color: #999;
+    }
+    
     .table-container {
       width: 90%;
       max-width: 900px;
@@ -215,13 +322,15 @@
   <div class="student-info-container" id="studentInfoContainer" style="display: none;"></div>
   <div class="date-filter" id="dateFilter" style="display: none;">
     <label>From Date:</label>
-    <select id="fromDate" onchange="filterTableByDate()">
-      <option value="">All Dates</option>
-    </select>
+    <div class="calendar-container">
+      <input type="text" id="fromDate" class="calendar-input" placeholder="Select date" readonly>
+      <div class="calendar-dropdown" id="fromCalendar"></div>
+    </div>
     <label>To Date:</label>
-    <select id="toDate" onchange="filterTableByDate()">
-      <option value="">All Dates</option>
-    </select>
+    <div class="calendar-container">
+      <input type="text" id="toDate" class="calendar-input" placeholder="Select date" readonly>
+      <div class="calendar-dropdown" id="toCalendar"></div>
+    </div>
   </div>
   <div class="table-container" id="output"></div>
   <div class="pdf-download-container" id="pdfDownloadContainer" style="display: none;"></div>
@@ -238,6 +347,9 @@
     let currentStudentName = '';
     let currentStudentEmail = '';
     let selectedRowDate = '';
+    let availableDates = [];
+    let fromCalendarDate = new Date();
+    let toCalendarDate = new Date();
 
     function handleKeyPress(event) {
       if (event.key === 'Enter') {
@@ -255,7 +367,6 @@
     }
 
     function parseDate(dateStr) {
-      // Handle different date formats
       if (dateStr.includes('/')) {
         const parts = dateStr.split('/');
         if (parts.length === 3) {
@@ -263,6 +374,10 @@
         }
       }
       return new Date(dateStr);
+    }
+
+    function formatDateForInput(date) {
+      return date.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
     }
 
     function showSkeletonLoader() {
@@ -319,7 +434,6 @@
       }
 
       try {
-        // Show skeleton loader while fetching
         showSkeletonLoader();
 
         const response = await fetch(`${API_URL}?q=${encodeURIComponent(query)}`);
@@ -337,6 +451,10 @@
 
         currentStudentName = data[0][nameKey] || "";
         currentStudentEmail = data[0][emailKey] || "";
+
+        // Extract available dates
+        availableDates = [...new Set(data.map(r => r[dateKey]))].filter(Boolean);
+        availableDates.sort((a, b) => parseDate(a) - parseDate(b));
 
         // Show Student Info Table
         studentInfoContainer.style.display = "block";
@@ -360,9 +478,9 @@
           </table>
         `;
 
-        // Show date filter
+        // Show date filter with calendars
         dateFilter.style.display = "flex";
-        populateDateDropdowns();
+        setupCalendars();
 
         // Show PDF download button
         pdfDownloadContainer.style.display = "block";
@@ -376,7 +494,6 @@
         const latestDate = getLatestDate();
         if (latestDate) {
           selectedRowDate = latestDate;
-          // Show only the latest date record in table
           const latestRecord = allRecords.find(record => record[dateKey] === latestDate);
           filteredRecords = latestRecord ? [latestRecord] : [];
           buildTable();
@@ -390,17 +507,132 @@
       }
     }
 
+    function setupCalendars() {
+      // Setup calendar event listeners
+      document.getElementById('fromDate').addEventListener('click', function() {
+        toggleCalendar('fromCalendar', this);
+      });
+      
+      document.getElementById('toDate').addEventListener('click', function() {
+        toggleCalendar('toCalendar', this);
+      });
+
+      // Close calendars when clicking outside
+      document.addEventListener('click', function(event) {
+        if (!event.target.closest('.calendar-container')) {
+          closeAllCalendars();
+        }
+      });
+
+      // Initialize calendars
+      renderCalendar('fromCalendar', fromCalendarDate, 'from');
+      renderCalendar('toCalendar', toCalendarDate, 'to');
+    }
+
+    function toggleCalendar(calendarId, inputElement) {
+      closeAllCalendars();
+      const calendar = document.getElementById(calendarId);
+      calendar.style.display = calendar.style.display === 'block' ? 'none' : 'block';
+    }
+
+    function closeAllCalendars() {
+      document.querySelectorAll('.calendar-dropdown').forEach(cal => {
+        cal.style.display = 'none';
+      });
+    }
+
+    function renderCalendar(calendarId, currentDate, type) {
+      const calendar = document.getElementById(calendarId);
+      const year = currentDate.getFullYear();
+      const month = currentDate.getMonth();
+
+      // Calendar header
+      const monthNames = ["January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"];
+      
+      let html = `
+        <div class="calendar-header">
+          <button class="calendar-nav" onclick="changeMonth('${calendarId}', -1)">‹</button>
+          <div class="calendar-month">${monthNames[month]} ${year}</div>
+          <button class="calendar-nav" onclick="changeMonth('${calendarId}', 1)">›</button>
+        </div>
+        <div class="calendar-grid">
+          <div class="calendar-day-header">Sun</div>
+          <div class="calendar-day-header">Mon</div>
+          <div class="calendar-day-header">Tue</div>
+          <div class="calendar-day-header">Wed</div>
+          <div class="calendar-day-header">Thu</div>
+          <div class="calendar-day-header">Fri</div>
+          <div class="calendar-day-header">Sat</div>
+      `;
+
+      // Get first day of month and total days
+      const firstDay = new Date(year, month, 1).getDay();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+      // Previous month days
+      const prevMonthLastDay = new Date(year, month, 0).getDate();
+      for (let i = firstDay - 1; i >= 0; i--) {
+        html += `<div class="calendar-day other-month">${prevMonthLastDay - i}</div>`;
+      }
+
+      // Current month days
+      for (let day = 1; day <= daysInMonth; day++) {
+        const dateStr = `${day}/${month + 1}/${year}`;
+        const dateObj = new Date(year, month, day);
+        const formattedDate = formatDateForInput(dateObj);
+        
+        const isAvailable = availableDates.some(availableDate => 
+          formatDateForInput(parseDate(availableDate)) === formattedDate
+        );
+        
+        const isSelected = type === 'from' ? 
+          document.getElementById('fromDate').value === formattedDate :
+          document.getElementById('toDate').value === formattedDate;
+
+        let dayClass = 'calendar-day';
+        if (!isAvailable) dayClass += ' disabled';
+        else if (isSelected) dayClass += ' selected';
+        else dayClass += ' available';
+
+        html += `<div class="${dayClass}" onclick="selectDate('${type}', '${formattedDate}')">${day}</div>`;
+      }
+
+      // Next month days
+      const totalCells = 42; // 6 weeks
+      const remainingCells = totalCells - (firstDay + daysInMonth);
+      for (let day = 1; day <= remainingCells; day++) {
+        html += `<div class="calendar-day other-month">${day}</div>`;
+      }
+
+      html += `</div>`;
+      calendar.innerHTML = html;
+    }
+
+    function changeMonth(calendarId, direction) {
+      if (calendarId === 'fromCalendar') {
+        fromCalendarDate.setMonth(fromCalendarDate.getMonth() + direction);
+        renderCalendar('fromCalendar', fromCalendarDate, 'from');
+      } else {
+        toCalendarDate.setMonth(toCalendarDate.getMonth() + direction);
+        renderCalendar('toCalendar', toCalendarDate, 'to');
+      }
+    }
+
+    function selectDate(type, date) {
+      const input = type === 'from' ? document.getElementById('fromDate') : document.getElementById('toDate');
+      input.value = date;
+      closeAllCalendars();
+      filterTableByDate();
+    }
+
     function getLatestDate() {
       if (!allRecords.length) return null;
       
       const dateKey = findKey(allRecords[0], "date");
       const dates = allRecords.map(r => parseDate(r[dateKey]));
       
-      // Find the latest date
       const latestTimestamp = Math.max(...dates.map(d => d.getTime()));
-      const latestDateObj = new Date(latestTimestamp);
-      
-      // Find the original date string that matches this latest date
       const latestRecord = allRecords.find(record => {
         const recordDate = parseDate(record[dateKey]);
         return recordDate.getTime() === latestTimestamp;
@@ -409,32 +641,12 @@
       return latestRecord ? latestRecord[dateKey] : null;
     }
 
-    function populateDateDropdowns() {
-      const dateKey = findKey(allRecords[0], "date");
-      const uniqueDates = [...new Set(allRecords.map(r => r[dateKey]))].filter(Boolean);
-      
-      // Sort dates chronologically
-      uniqueDates.sort((a, b) => parseDate(a) - parseDate(b));
-      
-      const fromDateSelect = document.getElementById("fromDate");
-      const toDateSelect = document.getElementById("toDate");
-      
-      fromDateSelect.innerHTML = '<option value="">All Dates</option>';
-      toDateSelect.innerHTML = '<option value="">All Dates</option>';
-      
-      uniqueDates.forEach(date => {
-        const option = `<option value="${date}">${formatDate(date)}</option>`;
-        fromDateSelect.innerHTML += option;
-        toDateSelect.innerHTML += option;
-      });
-    }
-
     function filterTableByDate() {
-      const fromDate = document.getElementById("fromDate").value;
-      const toDate = document.getElementById("toDate").value;
+      const fromDateInput = document.getElementById("fromDate").value;
+      const toDateInput = document.getElementById("toDate").value;
       const dateKey = findKey(allRecords[0], "date");
 
-      if (!fromDate && !toDate) {
+      if (!fromDateInput && !toDateInput) {
         // When no dates selected, show only the latest date
         const latestDate = getLatestDate();
         const latestRecord = allRecords.find(record => record[dateKey] === latestDate);
@@ -443,8 +655,8 @@
       } else {
         filteredRecords = allRecords.filter(record => {
           const recordDate = parseDate(record[dateKey]);
-          const from = fromDate ? parseDate(fromDate) : new Date(-8640000000000000);
-          const to = toDate ? parseDate(toDate) : new Date(8640000000000000);
+          const from = fromDateInput ? parseDate(fromDateInput) : new Date(-8640000000000000);
+          const to = toDateInput ? parseDate(toDateInput) : new Date(8640000000000000);
           
           return recordDate >= from && recordDate <= to;
         });
@@ -464,7 +676,6 @@
       
       buildTable();
       
-      // Update chart if we have a selected date
       if (selectedRowDate) {
         updateChartForSelectedDate();
       } else if (chart) {
@@ -576,31 +787,27 @@
       const doc = new jsPDF();
       const dateKey = findKey(allRecords[0], "date");
 
-      // Title
       doc.setFontSize(20);
       doc.setTextColor(0, 0, 0);
       doc.text('Student Progress Report', 105, 15, { align: 'center' });
 
-      // Student Info
       doc.setFontSize(12);
       doc.text(`Student: ${currentStudentName}`, 20, 25);
       doc.text(`Email: ${currentStudentEmail}`, 20, 32);
       
-      // Date range info
-      const fromDate = document.getElementById("fromDate").value;
-      const toDate = document.getElementById("toDate").value;
+      const fromDateInput = document.getElementById("fromDate").value;
+      const toDateInput = document.getElementById("toDate").value;
       let dateRangeText = 'Latest Date Only';
-      if (fromDate && toDate) {
-        dateRangeText = `From ${formatDate(fromDate)} to ${formatDate(toDate)}`;
-      } else if (fromDate) {
-        dateRangeText = `From ${formatDate(fromDate)}`;
-      } else if (toDate) {
-        dateRangeText = `Until ${formatDate(toDate)}`;
+      if (fromDateInput && toDateInput) {
+        dateRangeText = `From ${fromDateInput} to ${toDateInput}`;
+      } else if (fromDateInput) {
+        dateRangeText = `From ${fromDateInput}`;
+      } else if (toDateInput) {
+        dateRangeText = `Until ${toDateInput}`;
       }
       doc.text(`Date Range: ${dateRangeText}`, 20, 39);
       doc.text(`Generated: ${new Date().toLocaleDateString()}`, 20, 46);
 
-      // Table data
       const tableColumn = ['Date', 'Total Classes', 'Physics', 'Chemistry', 'Maths', 'Tests', 'Study Hours'];
       const tableRows = [];
 
@@ -617,7 +824,6 @@
         tableRows.push(rowData);
       });
 
-      // Add table to PDF
       doc.autoTable({
         head: [tableColumn],
         body: tableRows,
@@ -627,12 +833,10 @@
         headStyles: { fillColor: [0, 123, 255] }
       });
 
-      // Save PDF
-      const fileName = `${currentStudentName.replace(/\s+/g, '_')}_progress_${fromDate || 'latest'}_to_${toDate || 'latest'}.pdf`;
+      const fileName = `${currentStudentName.replace(/\s+/g, '_')}_progress_${fromDateInput || 'latest'}_to_${toDateInput || 'latest'}.pdf`;
       doc.save(fileName);
     }
 
-    // Add initial animations on page load
     document.addEventListener('DOMContentLoaded', function() {
       const searchInput = document.getElementById('search');
       if (searchInput) {
@@ -644,4 +848,5 @@
   </script>
 </body>
 </html>
+
 
