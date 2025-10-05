@@ -98,6 +98,11 @@
       studentInfo.innerHTML = "";
       dateSelectorContainer.innerHTML = "";
 
+      if (chart) {
+  chart.destroy();  // removes the existing chart from the page
+  chart = null;     // resets the variable
+      }
+
       if (!query) {
         output.innerHTML = "<div class='no-data'>Please enter a Name or Email</div>";
         if (chart) chart.destroy();
@@ -219,6 +224,7 @@
   </script>
 </body>
 </html>
+
 
 
 
