@@ -46,43 +46,30 @@
     tr:hover { background-color: #f2f8ff; }
     .no-data { text-align: center; padding: 20px; color: #888; }
     
-    /* Download Buttons */
-    .download-buttons {
-      display: flex;
-      gap: 10px;
+    /* PDF Button */
+    .pdf-download-container {
+      text-align: center;
       margin: 20px 0;
-      justify-content: center;
     }
     
-    .download-btn {
-      padding: 10px 20px;
+    .pdf-btn {
+      padding: 8px 16px;
       border: none;
+      background: #dc3545;
+      color: white;
       border-radius: 5px;
       cursor: pointer;
       font-size: 14px;
       font-weight: 500;
       transition: all 0.3s ease;
-      display: flex;
+      display: inline-flex;
       align-items: center;
-      gap: 8px;
-    }
-    
-    .csv-btn {
-      background: #28a745;
-      color: white;
-    }
-    
-    .csv-btn:hover {
-      background: #218838;
-    }
-    
-    .pdf-btn {
-      background: #dc3545;
-      color: white;
+      gap: 6px;
     }
     
     .pdf-btn:hover {
       background: #c82333;
+      transform: translateY(-1px);
     }
     
     /* Loading and Animation Styles */
@@ -181,19 +168,15 @@
     <button onclick="searchData()" class="bounce">Search</button>
   </div>
 
-  <div class="download-buttons" id="downloadButtons" style="display: none;">
-    <button class="download-btn csv-btn" onclick="downloadCSV()">
-      📊 Download CSV
-    </button>
-    <button class="download-btn pdf-btn" onclick="downloadPDF()">
-      📄 Download PDF
-    </button>
-  </div>
-
   <div class="student-info" id="studentInfo"></div>
   <div class="table-container" id="output"></div>
 
   <div style="width:90%; max-width:900px; margin:40px auto;">
+    <div class="pdf-download-container" id="pdfDownloadContainer" style="display: none;">
+      <button class="pdf-btn" onclick="downloadPDF()">
+        📄 Download PDF Report
+      </button>
+    </div>
     <canvas id="progressChart"></canvas>
   </div>
 
@@ -253,11 +236,11 @@
       const query = document.getElementById("search").value.trim();
       const output = document.getElementById("output");
       const studentInfo = document.getElementById("studentInfo");
-      const downloadButtons = document.getElementById("downloadButtons");
+      const pdfDownloadContainer = document.getElementById("pdfDownloadContainer");
       
       output.innerHTML = "";
       studentInfo.innerHTML = "";
-      downloadButtons.style.display = "none";
+      pdfDownloadContainer.style.display = "none";
 
       if (chart) { 
         chart.destroy(); 
@@ -295,8 +278,8 @@
           <span class="slide-up">📧 ${currentStudentEmail}</span>
         `;
 
-        // Show download buttons
-        downloadButtons.style.display = "flex";
+        // Show PDF download button
+        pdfDownloadContainer.style.display = "block";
 
         // Unique dates
         const uniqueDates = [...new Set(allRecords.map(r => r[dateKey]))].filter(Boolean);
@@ -412,41 +395,6 @@
         'studyHours': 'study hours'
       };
       return keyMap[cellId] || cellId;
-    }
-
-    function downloadCSV() {
-      if (!allRecords.length) return;
-
-      const headers = ['Date', 'Total Classes', 'Physics', 'Chemistry', 'Maths', 'Tests', 'Study Hours'];
-      const csvContent = [
-        `Student: ${currentStudentName}`,
-        `Email: ${currentStudentEmail}`,
-        `Generated: ${new Date().toLocaleDateString()}`,
-        '', // Empty line
-        headers.join(','),
-        ...allRecords.map(record => {
-          const dateKey = findKey(record, "date");
-          return [
-            formatDate(record[dateKey]),
-            record[findKey(record, "total classes attended")] || 0,
-            record[findKey(record, "physics questions attempted")] || 0,
-            record[findKey(record, "chemistry questions attempted")] || 0,
-            record[findKey(record, "maths questions attempted")] || 0,
-            record[findKey(record, "total tests taken")] || 0,
-            record[findKey(record, "study hours")] || 0
-          ].join(',');
-        })
-      ].join('\n');
-
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement('a');
-      const url = URL.createObjectURL(blob);
-      link.setAttribute('href', url);
-      link.setAttribute('download', `${currentStudentName.replace(/\s+/g, '_')}_progress_report.csv`);
-      link.style.visibility = 'hidden';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
     }
 
     function downloadPDF() {
