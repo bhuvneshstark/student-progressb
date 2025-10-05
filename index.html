@@ -74,6 +74,7 @@
 </head>
 <body>
   <h1>Search Student Progress</h1>
+
   <div class="search-box">
     <input type="text" id="search" placeholder="Enter Name or Email">
     <button onclick="searchData()">Search</button>
@@ -86,178 +87,123 @@
   </div>
 
   <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbxSPfr0OYtSv7jPebz0ob8KpsSz7OGqSZ7YHO6iDWOnoW3hNB7kOMmeyUcIEt_5E8fAew/exec"; // Replace this with your Apps Script Web App URL
+    const API_URL = "https://script.google.com/macros/s/AKfycbxSPfr0OYtSv7jPebz0ob8KpsSz7OGqSZ7YHO6iDWOnoW3hNB7kOMmeyUcIEt_5E8fAew/exec"; // Replace with your Google Apps Script URL
+    let chart;
 
     async function searchData() {
       const query = document.getElementById("search").value.trim();
       const output = document.getElementById("output");
+      const chartCanvas = document.getElementById("progressChart").getContext("2d");
       output.innerHTML = "";
 
       if (!query) {
         output.innerHTML = "<div class='no-data'>Please enter a Name or Email</div>";
+        if (chart) chart.destroy();
         return;
       }
 
-      const response = await fetch(`${API_URL}?q=${encodeURIComponent(query)}`);
-      const data = await response.json();
+      try {
+        const response = await fetch(`${API_URL}?q=${encodeURIComponent(query)}`);
+        const data = await response.json();
 
-      if (data.length === 0) {
-        output.innerHTML = "<div class='no-data'>No results found</div>";
-        return;
+        if (!data || data.length === 0) {
+          output.innerHTML = "<div class='no-data'>No results found</div>";
+          if (chart) chart.destroy();
+          return;
+        }
+
+        const row = data[0];
+
+        const formatDate = dateStr => {
+          const d = new Date(dateStr);
+          return isNaN(d) ? dateStr : d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+        };
+
+        // Table
+        const html = `
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Total Classes</th>
+                <th>Physics</th>
+                <th>Chemistry</th>
+                <th>Maths</th>
+                <th>Tests</th>
+                <th>Study Hours</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>${formatDate(row["Date"])}</td>
+                <td>${row["Name"]}</td>
+                <td>${row["Email"]}</td>
+                <td>${row["Total Classes Attended"] || 0}</td>
+                <td>${row["Physics Questions Attempted"] || 0}</td>
+                <td>${row["Chemistry Questions Attempted"] || 0}</td>
+                <td>${row["Maths Questions Attempted"] || 0}</td>
+                <td>${row["Total Tests Taken"] || 0}</td>
+                <td>${row["Study Hours"] || 0}</td>
+              </tr>
+            </tbody>
+          </table>
+        `;
+        output.innerHTML = html;
+
+        // Chart
+        const chartData = {
+          labels: ["Total Classes", "Physics", "Chemistry", "Maths", "Tests", "Study Hours"],
+          datasets: [{
+            label: "Student Progress",
+            data: [
+              Number(row["Total Classes Attended"]) || 0,
+              Number(row["Physics Questions Attempted"]) || 0,
+              Number(row["Chemistry Questions Attempted"]) || 0,
+              Number(row["Maths Questions Attempted"]) || 0,
+              Number(row["Total Tests Taken"]) || 0,
+              Number(row["Study Hours"]) || 0
+            ],
+            backgroundColor: [
+              "#007bff",
+              "#28a745",
+              "#ffc107",
+              "#dc3545",
+              "#17a2b8",
+              "#6f42c1"
+            ],
+            borderRadius: 6
+          }]
+        };
+
+        const options = {
+          responsive: true,
+          plugins: {
+            legend: { display: false },
+            title: {
+              display: true,
+              text: `${row["Name"]}'s Progress Overview`,
+              font: { size: 18 }
+            }
+          },
+          scales: { y: { beginAtZero: true } }
+        };
+
+        if (chart) chart.destroy();
+        chart = new Chart(chartCanvas, { type: 'bar', data: chartData, options });
+
+      } catch (error) {
+        console.error(error);
+        output.innerHTML = "<div class='no-data'>Error fetching data</div>";
+        if (chart) chart.destroy();
       }
-
-      const row = data[0];
-      const formatDate = dateStr => {
-        const d = new Date(dateStr);
-        return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
-      };
-
-      const html = `
-        <table>
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Name</th>
-              <th>Email</th>
-              <th>Total Classes</th>
-              <th>Physics</th>
-              <th>Chemistry</th>
-              <th>Maths</th>
-              <th>Tests</th>
-              <th>Study Hours</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>${formatDate(row.date)}</td>
-              <td>${row.name}</td>
-              <td>${row.email}</td>
-              <td>${row["total classes attended"] || 0}</td>
-              <td>${row["physics questions attempted"] || 0}</td>
-              <td>${row["chemistry questions attempted"] || 0}</td>
-              <td>${row["maths questions attempted"] || 0}</td>
-              <td>${row["total tests taken"] || 0}</td>
-              <td>${row["study hours"] || 0}</td>
-            </tr>
-          </tbody>
-        </table>
-      `;
-      output.innerHTML = html;
     }
   </script>
-
-  <script>
-  const API_URL = "https://script.google.com/macros/s/AKfycbxSPfr0OYtSv7jPebz0ob8KpsSz7OGqSZ7YHO6iDWOnoW3hNB7kOMmeyUcIEt_5E8fAew/exec"; // Replace with your Google Apps Script URL
-  let chart;
-
-  async function searchData() {
-    const query = document.getElementById("search").value.trim();
-    const output = document.getElementById("output");
-    const chartCanvas = document.getElementById("progressChart").getContext("2d");
-    output.innerHTML = "";
-
-    if (!query) {
-      output.innerHTML = "<div class='no-data'>Please enter a Name or Email</div>";
-      if (chart) chart.destroy();
-      return;
-    }
-
-    const response = await fetch(`${API_URL}?q=${encodeURIComponent(query)}`);
-    const data = await response.json();
-
-    if (data.length === 0) {
-      output.innerHTML = "<div class='no-data'>No results found</div>";
-      if (chart) chart.destroy();
-      return;
-    }
-
-    const row = data[0];
-    console.log(row); // 👀 Debug line: see what your data looks like
-
-    const formatDate = dateStr => {
-      const d = new Date(dateStr);
-      return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
-    };
-
-    // 🧩 Table
-    const html = `
-      <table>
-        <thead>
-          <tr>
-            <th>Date</th>
-            <th>Name</th>
-            <th>Email</th>
-            <th>Total Classes</th>
-            <th>Physics</th>
-            <th>Chemistry</th>
-            <th>Maths</th>
-            <th>Tests</th>
-            <th>Study Hours</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>${formatDate(row["Date"])}</td>
-            <td>${row["Name"]}</td>
-            <td>${row["Email"]}</td>
-            <td>${row["Total Classes Attended"] || 0}</td>
-            <td>${row["Physics Questions Attempted"] || 0}</td>
-            <td>${row["Chemistry Questions Attempted"] || 0}</td>
-            <td>${row["Maths Questions Attempted"] || 0}</td>
-            <td>${row["Total Tests Taken"] || 0}</td>
-            <td>${row["Study Hours"] || 0}</td>
-          </tr>
-        </tbody>
-      </table>
-    `;
-    output.innerHTML = html;
-
-    // 🧩 Chart Data
-    const chartData = {
-      labels: ["Total Classes", "Physics", "Chemistry", "Maths", "Tests", "Study Hours"],
-      datasets: [{
-        label: "Student Progress",
-        data: [
-          Number(row["Total Classes Attended"]) || 0,
-          Number(row["Physics Questions Attempted"]) || 0,
-          Number(row["Chemistry Questions Attempted"]) || 0,
-          Number(row["Maths Questions Attempted"]) || 0,
-          Number(row["Total Tests Taken"]) || 0,
-          Number(row["Study Hours"]) || 0
-        ],
-        backgroundColor: [
-          "#007bff",
-          "#28a745",
-          "#ffc107",
-          "#dc3545",
-          "#17a2b8",
-          "#6f42c1"
-        ],
-        borderRadius: 6
-      }]
-    };
-
-    const options = {
-      responsive: true,
-      plugins: {
-        legend: { display: false },
-        title: {
-          display: true,
-          text: `${row["Name"]}'s Progress Overview`,
-          font: { size: 18 }
-        }
-      },
-      scales: { y: { beginAtZero: true } }
-    };
-
-    if (chart) chart.destroy();
-    chart = new Chart(chartCanvas, { type: 'bar', data: chartData, options });
-  }
-</script>
-
-
 </body>
 </html>
+
+
 
 
 
