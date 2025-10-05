@@ -219,7 +219,7 @@
       <option value="">All Dates</option>
     </select>
     <label>To Date:</label>
-    <select id="fromDate" onchange="filterTableByDate()">
+    <select id="toDate" onchange="filterTableByDate()">
       <option value="">All Dates</option>
     </select>
   </div>
@@ -255,9 +255,12 @@
     }
 
     function parseDate(dateStr) {
-      const parts = dateStr.split('/');
-      if (parts.length === 3) {
-        return new Date(parts[2], parts[1] - 1, parts[0]);
+      // Handle different date formats
+      if (dateStr.includes('/')) {
+        const parts = dateStr.split('/');
+        if (parts.length === 3) {
+          return new Date(parts[2], parts[1] - 1, parts[0]);
+        }
       }
       return new Date(dateStr);
     }
@@ -379,27 +382,34 @@
         const latestDate = getLatestDate();
         if (latestDate) {
           selectedRowDate = latestDate;
-          buildTable();
+          buildTable(); // Rebuild to highlight the selected row
           updateChartForSelectedDate();
         }
 
       } catch (err) {
-        console.error(err);
+        console.error('Error:', err);
         output.innerHTML = "<div class='no-data pulse'>Error fetching data</div>";
         if (chart) chart.destroy();
       }
     }
 
     function getLatestDate() {
+      if (!allRecords.length) return null;
+      
       const dateKey = findKey(allRecords[0], "date");
       const dates = allRecords.map(r => parseDate(r[dateKey]));
-      const latestDate = new Date(Math.max(...dates));
       
-      // Convert back to original format
-      const dateKey = findKey(allRecords[0], "date");
-      return allRecords.find(r => 
-        parseDate(r[dateKey]).getTime() === latestDate.getTime()
-      )[dateKey];
+      // Find the latest date
+      const latestTimestamp = Math.max(...dates.map(d => d.getTime()));
+      const latestDateObj = new Date(latestTimestamp);
+      
+      // Find the original date string that matches this latest date
+      const latestRecord = allRecords.find(record => {
+        const recordDate = parseDate(record[dateKey]);
+        return recordDate.getTime() === latestTimestamp;
+      });
+      
+      return latestRecord ? latestRecord[dateKey] : null;
     }
 
     function populateDateDropdowns() {
@@ -618,17 +628,3 @@
   </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
