@@ -51,12 +51,11 @@
   <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbxSPfr0OYtSv7jPebz0ob8KpsSz7OGqSZ7YHO6iDWOnoW3hNB7kOMmeyUcIEt_5E8fAew/exec";
     let chart;
-    let allRecords = []; // store multiple entries for same student
+    let allRecords = [];
 
     async function searchData() {
       const query = document.getElementById("search").value.trim();
       const output = document.getElementById("output");
-      const chartCanvas = document.getElementById("progressChart").getContext("2d");
       const dateSelectorContainer = document.getElementById("dateSelectorContainer");
       output.innerHTML = "";
       dateSelectorContainer.innerHTML = "";
@@ -78,22 +77,17 @@
         }
 
         allRecords = data;
-        console.log("✅ Found Records:", allRecords);
+        console.log("✅ Records found:", allRecords);
 
-        if (data.length > 1) {
-          // Show dropdown if multiple records found
-          const selectHTML = `
-            <label for="dateSelect"><strong>Select Date:</strong></label>
-            <select id="dateSelect" onchange="showRecordByDate(this.value)">
-              <option value="">-- Choose a Date --</option>
-              ${data.map(r => `<option value="${r['Date']}">${formatDate(r['Date'])}</option>`).join('')}
-            </select>
-          `;
-          dateSelectorContainer.innerHTML = selectHTML;
-        } else {
-          // Only one record
-          showRecord(data[0]);
-        }
+        // Create Date Dropdown
+        const selectHTML = `
+          <label for="dateSelect"><strong>Select Date:</strong></label><br>
+          <select id="dateSelect" onchange="showRecordByDate(this.value)">
+            <option value="">-- Choose a Date --</option>
+            ${data.map(r => `<option value="${r['Date']}">${formatDate(r['Date'])}</option>`).join('')}
+          </select>
+        `;
+        dateSelectorContainer.innerHTML = selectHTML;
 
       } catch (err) {
         console.error(err);
@@ -112,6 +106,7 @@
     }
 
     function showRecordByDate(selectedDate) {
+      if (!selectedDate) return;
       const record = allRecords.find(r => r[findKey(r, "date")] === selectedDate);
       if (record) showRecord(record);
     }
@@ -188,6 +183,8 @@
   </script>
 </body>
 </html>
+
+
 
 
 
