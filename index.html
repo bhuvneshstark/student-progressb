@@ -333,7 +333,7 @@
         }
 
         allRecords = data;
-        filteredRecords = [...data];
+        filteredRecords = [...data]; // Show all records by default
         const dateKey = findKey(data[0], "date");
         const nameKey = findKey(data[0], "name");
         const emailKey = findKey(data[0], "email");
@@ -375,10 +375,10 @@
           </button>
         `;
 
-        // Build full table and show latest date by default
+        // Build full table with ALL records
         buildTable();
         
-        // Auto-select and show latest date data in chart
+        // Auto-select and show latest date data in chart (but keep all records in table)
         const latestDate = getLatestDate();
         if (latestDate) {
           selectedRowDate = latestDate;
@@ -438,7 +438,7 @@
       const dateKey = findKey(allRecords[0], "date");
 
       if (!fromDate && !toDate) {
-        filteredRecords = [...allRecords];
+        filteredRecords = [...allRecords]; // Show all records when no filter
       } else {
         filteredRecords = allRecords.filter(record => {
           const recordDate = parseDate(record[dateKey]);
@@ -450,10 +450,18 @@
       }
       
       buildTable();
-      selectedRowDate = '';
-      if (chart) {
-        chart.destroy();
-        chart = null;
+      
+      // If the selected row is no longer in filtered results, clear selection
+      if (selectedRowDate && !filteredRecords.find(r => r[dateKey] === selectedRowDate)) {
+        selectedRowDate = '';
+        if (chart) {
+          chart.destroy();
+          chart = null;
+        }
+      } else if (selectedRowDate) {
+        // Keep the selection and update chart if selected row is still in filtered results
+        buildTable(); // Rebuild to maintain selection highlight
+        updateChartForSelectedDate();
       }
     }
 
