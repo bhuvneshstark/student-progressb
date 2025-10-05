@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -39,6 +40,17 @@
       font-weight: 600;
       padding: 4px 0;
     }
+    .date-filter {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 20px;
+      align-items: center;
+      justify-content: center;
+    }
+    .date-filter label {
+      font-weight: 600;
+      color: #333;
+    }
     .table-container {
       width: 90%;
       max-width: 900px;
@@ -47,11 +59,17 @@
       box-shadow: 0 2px 10px rgba(0,0,0,0.1);
       overflow-x: auto;
       margin-bottom: 20px;
+      position: relative;
     }
     table { width: 100%; border-collapse: collapse; text-align: left; }
     th, td { padding: 12px 15px; border-bottom: 1px solid #e0e0e0; }
-    th { background: #007BFF; color: white; }
-    tr:hover { background-color: #f2f8ff; }
+    th { background: #007BFF; color: white; position: sticky; top: 0; }
+    tr { cursor: pointer; transition: background-color 0.2s ease; }
+    tr:hover { background-color: #f8f9fa; }
+    tr.selected { 
+      background-color: #e3f2fd; 
+      border-left: 4px solid #007BFF;
+    }
     .no-data { text-align: center; padding: 20px; color: #888; }
     
     /* PDF Button */
@@ -179,6 +197,16 @@
   </div>
 
   <div class="student-info" id="studentInfo"></div>
+  <div class="date-filter" id="dateFilter" style="display: none;">
+    <label>From Date:</label>
+    <select id="fromDate" onchange="filterTableByDate()">
+      <option value="">All Dates</option>
+    </select>
+    <label>To Date:</label>
+    <select id="toDate" onchange="filterTableByDate()">
+      <option value="">All Dates</option>
+    </select>
+  </div>
   <div class="table-container" id="output"></div>
   <div class="pdf-download-container" id="pdfDownloadContainer" style="display: none;"></div>
 
@@ -190,8 +218,10 @@
     const API_URL = "https://script.google.com/macros/s/AKfycbwi9Sr0LaNGk-mxeWP8aUX5rBFeFON4aAcRwBxQRLeLSy65sih8ap8zl90ucIJw_3IMMg/exec";
     let chart;
     let allRecords = [];
+    let filteredRecords = [];
     let currentStudentName = '';
     let currentStudentEmail = '';
+    let selectedRowDate = '';
 
     function handleKeyPress(event) {
       if (event.key === 'Enter') {
@@ -206,6 +236,14 @@
     function formatDate(d) {
       const dt = new Date(d);
       return isNaN(dt) ? d : dt.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+    }
+
+    function parseDate(dateStr) {
+      const parts = dateStr.split('/');
+      if (parts.length === 3) {
+        return new Date(parts[2], parts[1] - 1, parts[0]);
+      }
+      return new Date(dateStr);
     }
 
     function showSkeletonLoader() {
@@ -224,15 +262,17 @@
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td><div class="skeleton-loader" style="height: 30px;"></div></td>
-              <td><div class="skeleton-loader"></div></td>
-              <td><div class="skeleton-loader"></div></td>
-              <td><div class="skeleton-loader"></div></td>
-              <td><div class="skeleton-loader"></div></td>
-              <td><div class="skeleton-loader"></div></td>
-              <td><div class="skeleton-loader"></div></td>
-            </tr>
+            ${Array(5).fill(0).map(() => `
+              <tr>
+                <td><div class="skeleton-loader" style="height: 20px;"></div></td>
+                <td><div class="skeleton-loader"></div></td>
+                <td><div class="skeleton-loader"></div></td>
+                <td><div class="skeleton-loader"></div></td>
+                <td><div class="skeleton-loader"></div></td>
+                <td><div class="skeleton-loader"></div></td>
+                <td><div class="skeleton-loader"></div></td>
+              </tr>
+            `).join('')}
           </tbody>
         </table>
       `;
@@ -243,10 +283,13 @@
       const output = document.getElementById("output");
       const studentInfo = document.getElementById("studentInfo");
       const pdfDownloadContainer = document.getElementById("pdfDownloadContainer");
+      const dateFilter = document.getElementById("dateFilter");
       
       output.innerHTML = "";
       studentInfo.innerHTML = "";
       pdfDownloadContainer.style.display = "none";
+      dateFilter.style.display = "none";
+      selectedRowDate = '';
 
       if (chart) { 
         chart.destroy(); 
@@ -271,6 +314,7 @@
         }
 
         allRecords = data;
+        filteredRecords = [...data];
         const dateKey = findKey(data[0], "date");
         const nameKey = findKey(data[0], "name");
         const emailKey = findKey(data[0], "email");
@@ -284,53 +328,20 @@
           <div class="student-email slide-up">${currentStudentEmail}</div>
         `;
 
+        // Show date filter
+        dateFilter.style.display = "flex";
+        populateDateDropdowns();
+
         // Show PDF download button
         pdfDownloadContainer.style.display = "block";
         pdfDownloadContainer.innerHTML = `
           <button class="pdf-btn" onclick="downloadPDF()">
-            📄 Download PDF
+            📄 Download PDF (Filtered Data)
           </button>
         `;
 
-        // Unique dates
-        const uniqueDates = [...new Set(allRecords.map(r => r[dateKey]))].filter(Boolean);
-        const latestDate = uniqueDates[uniqueDates.length - 1];
-
-        // Build table with Date dropdown in first column
-        const html = `
-          <table class="fade-in">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Total Classes</th>
-                <th>Physics</th>
-                <th>Chemistry</th>
-                <th>Maths</th>
-                <th>Tests</th>
-                <th>Study Hours</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>
-                  <select id="dateSelectTable" onchange="updateTableAndChart(this.value)" class="pulse">
-                    ${uniqueDates.map(d => `<option value="${d}" ${d === latestDate ? "selected" : ""}>${formatDate(d)}</option>`).join('')}
-                  </select>
-                </td>
-                <td id="totalClasses" class="pulse">0</td>
-                <td id="physics" class="pulse">0</td>
-                <td id="chemistry" class="pulse">0</td>
-                <td id="maths" class="pulse">0</td>
-                <td id="tests" class="pulse">0</td>
-                <td id="studyHours" class="pulse">0</td>
-              </tr>
-            </tbody>
-          </table>
-        `;
-        output.innerHTML = html;
-
-        // Show chart and table data for the latest date
-        updateTableAndChart(latestDate);
+        // Build full table
+        buildTable();
 
       } catch (err) {
         console.error(err);
@@ -339,22 +350,106 @@
       }
     }
 
-    function updateTableAndChart(selectedDate) {
-      if (!selectedDate) return;
+    function populateDateDropdowns() {
       const dateKey = findKey(allRecords[0], "date");
-      const row = allRecords.find(r => r[dateKey] === selectedDate);
-      if (!row) return;
-
-      // Add pulse animation to table cells when updating
-      const cells = ['totalClasses', 'physics', 'chemistry', 'maths', 'tests', 'studyHours'];
-      cells.forEach(cellId => {
-        const cell = document.getElementById(cellId);
-        if (cell) {
-          cell.innerText = row[findKey(row, getCellKey(cellId))] || 0;
-          cell.classList.add('pulse');
-          setTimeout(() => cell.classList.remove('pulse'), 600);
-        }
+      const uniqueDates = [...new Set(allRecords.map(r => r[dateKey]))].filter(Boolean);
+      
+      // Sort dates chronologically
+      uniqueDates.sort((a, b) => parseDate(a) - parseDate(b));
+      
+      const fromDateSelect = document.getElementById("fromDate");
+      const toDateSelect = document.getElementById("toDate");
+      
+      fromDateSelect.innerHTML = '<option value="">All Dates</option>';
+      toDateSelect.innerHTML = '<option value="">All Dates</option>';
+      
+      uniqueDates.forEach(date => {
+        const option = `<option value="${date}">${formatDate(date)}</option>`;
+        fromDateSelect.innerHTML += option;
+        toDateSelect.innerHTML += option;
       });
+    }
+
+    function filterTableByDate() {
+      const fromDate = document.getElementById("fromDate").value;
+      const toDate = document.getElementById("toDate").value;
+      const dateKey = findKey(allRecords[0], "date");
+
+      if (!fromDate && !toDate) {
+        filteredRecords = [...allRecords];
+      } else {
+        filteredRecords = allRecords.filter(record => {
+          const recordDate = parseDate(record[dateKey]);
+          const from = fromDate ? parseDate(fromDate) : new Date(-8640000000000000);
+          const to = toDate ? parseDate(toDate) : new Date(8640000000000000);
+          
+          return recordDate >= from && recordDate <= to;
+        });
+      }
+      
+      buildTable();
+      selectedRowDate = '';
+      if (chart) {
+        chart.destroy();
+        chart = null;
+      }
+    }
+
+    function buildTable() {
+      const output = document.getElementById("output");
+      const dateKey = findKey(allRecords[0], "date");
+
+      if (filteredRecords.length === 0) {
+        output.innerHTML = "<div class='no-data pulse'>No records found for selected date range</div>";
+        return;
+      }
+
+      const html = `
+        <table class="fade-in">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Total Classes</th>
+              <th>Physics</th>
+              <th>Chemistry</th>
+              <th>Maths</th>
+              <th>Tests</th>
+              <th>Study Hours</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${filteredRecords.map(record => {
+              const isSelected = record[dateKey] === selectedRowDate ? 'selected' : '';
+              return `
+                <tr class="${isSelected}" onclick="selectRow('${record[dateKey]}')">
+                  <td>${formatDate(record[dateKey])}</td>
+                  <td>${record[findKey(record, "total classes attended")] || 0}</td>
+                  <td>${record[findKey(record, "physics questions attempted")] || 0}</td>
+                  <td>${record[findKey(record, "chemistry questions attempted")] || 0}</td>
+                  <td>${record[findKey(record, "maths questions attempted")] || 0}</td>
+                  <td>${record[findKey(record, "total tests taken")] || 0}</td>
+                  <td>${record[findKey(record, "study hours")] || 0}</td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      `;
+      output.innerHTML = html;
+    }
+
+    function selectRow(date) {
+      selectedRowDate = date;
+      buildTable();
+      updateChartForSelectedDate();
+    }
+
+    function updateChartForSelectedDate() {
+      if (!selectedRowDate) return;
+      
+      const dateKey = findKey(allRecords[0], "date");
+      const row = allRecords.find(r => r[dateKey] === selectedRowDate);
+      if (!row) return;
 
       const ctx = document.getElementById("progressChart").getContext("2d");
       const chartData = {
@@ -380,7 +475,7 @@
           legend: { display: false },
           title: { 
             display: true, 
-            text: `Progress (${formatDate(selectedDate)})`, 
+            text: `Progress (${formatDate(selectedRowDate)})`, 
             font: { size: 18 },
             color: '#333'
           }
@@ -396,23 +491,12 @@
       chart = new Chart(ctx, { type: 'bar', data: chartData, options });
     }
 
-    function getCellKey(cellId) {
-      const keyMap = {
-        'totalClasses': 'total classes attended',
-        'physics': 'physics questions attempted',
-        'chemistry': 'chemistry questions attempted',
-        'maths': 'maths questions attempted',
-        'tests': 'total tests taken',
-        'studyHours': 'study hours'
-      };
-      return keyMap[cellId] || cellId;
-    }
-
     function downloadPDF() {
-      if (!allRecords.length) return;
+      if (!filteredRecords.length) return;
 
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
+      const dateKey = findKey(allRecords[0], "date");
 
       // Title
       doc.setFontSize(20);
@@ -423,14 +507,26 @@
       doc.setFontSize(12);
       doc.text(`Student: ${currentStudentName}`, 20, 25);
       doc.text(`Email: ${currentStudentEmail}`, 20, 32);
-      doc.text(`Generated: ${new Date().toLocaleDateString()}`, 20, 39);
+      
+      // Date range info
+      const fromDate = document.getElementById("fromDate").value;
+      const toDate = document.getElementById("toDate").value;
+      let dateRangeText = 'All Dates';
+      if (fromDate && toDate) {
+        dateRangeText = `From ${formatDate(fromDate)} to ${formatDate(toDate)}`;
+      } else if (fromDate) {
+        dateRangeText = `From ${formatDate(fromDate)}`;
+      } else if (toDate) {
+        dateRangeText = `Until ${formatDate(toDate)}`;
+      }
+      doc.text(`Date Range: ${dateRangeText}`, 20, 39);
+      doc.text(`Generated: ${new Date().toLocaleDateString()}`, 20, 46);
 
       // Table data
       const tableColumn = ['Date', 'Total Classes', 'Physics', 'Chemistry', 'Maths', 'Tests', 'Study Hours'];
       const tableRows = [];
 
-      allRecords.forEach(record => {
-        const dateKey = findKey(record, "date");
+      filteredRecords.forEach(record => {
         const rowData = [
           formatDate(record[dateKey]),
           record[findKey(record, "total classes attended")] || 0,
@@ -447,14 +543,15 @@
       doc.autoTable({
         head: [tableColumn],
         body: tableRows,
-        startY: 45,
+        startY: 55,
         theme: 'grid',
         styles: { fontSize: 10, cellPadding: 3 },
         headStyles: { fillColor: [0, 123, 255] }
       });
 
       // Save PDF
-      doc.save(`${currentStudentName.replace(/\s+/g, '_')}_progress_report.pdf`);
+      const fileName = `${currentStudentName.replace(/\s+/g, '_')}_progress_${fromDate || 'all'}_to_${toDate || 'all'}.pdf`;
+      doc.save(fileName);
     }
 
     // Add initial animations on page load
