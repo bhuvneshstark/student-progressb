@@ -17,28 +17,7 @@
     input { padding: 10px; width: 300px; border: 1px solid #ccc; border-radius: 5px; font-size: 15px; }
     button { padding: 10px 20px; border: none; background: #007BFF; color: white; border-radius: 5px; cursor: pointer; font-size: 15px; }
     button:hover { background: #0056b3; }
-    select {
-      padding: 10px;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-      font-size: 15px;
-      margin-top: 15px;
-    }
-    .student-info {
-      margin-top: 20px;
-      margin-bottom: 20px;
-      text-align: center;
-      font-size: 16px;
-      color: #333;
-    }
-    .student-info span {
-      display: inline-block;
-      background: #e9f2ff;
-      padding: 8px 16px;
-      border-radius: 8px;
-      margin: 4px;
-      font-weight: 500;
-    }
+    select { padding: 10px; border: 1px solid #ccc; border-radius: 5px; font-size: 15px; }
     .table-container {
       width: 90%;
       max-width: 900px;
@@ -64,8 +43,6 @@
     <button onclick="searchData()">Search</button>
   </div>
 
-  <div id="dateSelectorContainer"></div>
-  <div class="student-info" id="studentInfo"></div>
   <div class="table-container" id="output"></div>
 
   <div style="width:90%; max-width:900px; margin:40px auto;">
@@ -73,7 +50,7 @@
   </div>
 
   <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbwi9Sr0LaNGk-mxeWP8aUX5rBFeFON4aAcRwBxQRLeLSy65sih8ap8zl90ucIJw_3IMMg/exec"; // ← Replace this with your Apps Script link
+    const API_URL = "YOUR_GOOGLE_APPS_SCRIPT_URL_HERE"; // Replace with your Apps Script link
     let chart;
     let allRecords = [];
 
@@ -83,30 +60,18 @@
 
     function formatDate(d) {
       const dt = new Date(d);
-      if (!isNaN(dt)) {
-        return dt.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
-      }
-      return d;
+      return isNaN(dt) ? d : dt.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
     }
 
     async function searchData() {
       const query = document.getElementById("search").value.trim();
       const output = document.getElementById("output");
-      const dateSelectorContainer = document.getElementById("dateSelectorContainer");
-      const studentInfo = document.getElementById("studentInfo");
       output.innerHTML = "";
-      studentInfo.innerHTML = "";
-      dateSelectorContainer.innerHTML = "";
-      
-     if (chart) {
-  chart.destroy();  // removes the existing chart from the page
-  chart = null;     // resets the variable
-}
 
+      if (chart) { chart.destroy(); chart = null; }
 
       if (!query) {
         output.innerHTML = "<div class='no-data'>Please enter a Name or Email</div>";
-        if (chart) chart.destroy();
         return;
       }
 
@@ -116,35 +81,62 @@
 
         if (!data || data.length === 0) {
           output.innerHTML = "<div class='no-data'>No results found</div>";
-          if (chart) chart.destroy();
           return;
         }
 
         allRecords = data;
-        const dateKey = findKey(allRecords[0], "date");
-        const nameKey = findKey(allRecords[0], "name");
-        const emailKey = findKey(allRecords[0], "email");
+        const dateKey = findKey(data[0], "date");
+        const nameKey = findKey(data[0], "name");
+        const emailKey = findKey(data[0], "email");
 
-        // ✅ Collect all unique date values (even if multiple records exist)
-        const uniqueDates = [...new Set(allRecords.map(r => r[dateKey]))].filter(Boolean);
-
-        // Build dropdown
-        const selectHTML = `
-          <label for="dateSelect"><strong>Select Date:</strong></label><br>
-          <select id="dateSelect" onchange="showRecordByDate(this.value)">
-            <option value="">-- Choose a Date --</option>
-            ${uniqueDates.map(d => `<option value="${d}">${formatDate(d)}</option>`).join('')}
-          </select>
-        `;
-        dateSelectorContainer.innerHTML = selectHTML;
-
-        // Show Name and Email
         const studentName = data[0][nameKey] || "";
         const studentEmail = data[0][emailKey] || "";
-        studentInfo.innerHTML = `
-          <span>👤 ${studentName}</span>
-          <span>📧 ${studentEmail}</span>
+
+        // Unique dates
+        const uniqueDates = [...new Set(allRecords.map(r => r[dateKey]))].filter(Boolean);
+
+        // Automatically select the latest date (last in the list)
+        const latestDate = uniqueDates[uniqueDates.length - 1];
+
+        // Build table with Date dropdown in the first column
+        const html = `
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Total Classes</th>
+                <th>Physics</th>
+                <th>Chemistry</th>
+                <th>Maths</th>
+                <th>Tests</th>
+                <th>Study Hours</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <select id="dateSelectTable" onchange="updateTableAndChart(this.value)">
+                    ${uniqueDates.map(d => `<option value="${d}" ${d === latestDate ? "selected" : ""}>${formatDate(d)}</option>`).join('')}
+                  </select>
+                </td>
+                <td>${studentName}</td>
+                <td>${studentEmail}</td>
+                <td id="totalClasses">0</td>
+                <td id="physics">0</td>
+                <td id="chemistry">0</td>
+                <td id="maths">0</td>
+                <td id="tests">0</td>
+                <td id="studyHours">0</td>
+              </tr>
+            </tbody>
+          </table>
         `;
+        output.innerHTML = html;
+
+        // Show chart and data for the latest date automatically
+        updateTableAndChart(latestDate);
 
       } catch (err) {
         console.error(err);
@@ -153,58 +145,34 @@
       }
     }
 
-    function showRecordByDate(selectedDate) {
+    function updateTableAndChart(selectedDate) {
       if (!selectedDate) return;
       const dateKey = findKey(allRecords[0], "date");
-      const record = allRecords.find(r => r[dateKey] === selectedDate);
-      if (record) showRecord(record);
-    }
+      const row = allRecords.find(r => r[dateKey] === selectedDate);
+      if (!row) return;
 
-    function showRecord(row) {
-      const output = document.getElementById("output");
-      const chartCanvas = document.getElementById("progressChart").getContext("2d");
+      // Update table cells
+      document.getElementById("totalClasses").innerText = row[findKey(row, "total classes attended")] || 0;
+      document.getElementById("physics").innerText = row[findKey(row, "physics questions attempted")] || 0;
+      document.getElementById("chemistry").innerText = row[findKey(row, "chemistry questions attempted")] || 0;
+      document.getElementById("maths").innerText = row[findKey(row, "maths questions attempted")] || 0;
+      document.getElementById("tests").innerText = row[findKey(row, "total tests taken")] || 0;
+      document.getElementById("studyHours").innerText = row[findKey(row, "study hours")] || 0;
 
-      const date = row[findKey(row, "date")] || "";
-      const totalClasses = Number(row[findKey(row, "total classes attended")] || 0);
-      const physics = Number(row[findKey(row, "physics questions attempted")] || 0);
-      const chemistry = Number(row[findKey(row, "chemistry questions attempted")] || 0);
-      const maths = Number(row[findKey(row, "maths questions attempted")] || 0);
-      const tests = Number(row[findKey(row, "total tests taken")] || 0);
-      const studyHours = Number(row[findKey(row, "study hours")] || 0);
-
-      output.innerHTML = `
-        <table>
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Total Classes</th>
-              <th>Physics</th>
-              <th>Chemistry</th>
-              <th>Maths</th>
-              <th>Tests</th>
-              <th>Study Hours</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>${formatDate(date)}</td>
-              <td>${totalClasses}</td>
-              <td>${physics}</td>
-              <td>${chemistry}</td>
-              <td>${maths}</td>
-              <td>${tests}</td>
-              <td>${studyHours}</td>
-            </tr>
-          </tbody>
-        </table>
-      `;
-
-      // Chart setup
+      // Update chart
+      const ctx = document.getElementById("progressChart").getContext("2d");
       const chartData = {
         labels: ["Total Classes", "Physics", "Chemistry", "Maths", "Tests", "Study Hours"],
         datasets: [{
           label: "Student Progress",
-          data: [totalClasses, physics, chemistry, maths, tests, studyHours],
+          data: [
+            Number(row[findKey(row, "total classes attended")] || 0),
+            Number(row[findKey(row, "physics questions attempted")] || 0),
+            Number(row[findKey(row, "chemistry questions attempted")] || 0),
+            Number(row[findKey(row, "maths questions attempted")] || 0),
+            Number(row[findKey(row, "total tests taken")] || 0),
+            Number(row[findKey(row, "study hours")] || 0)
+          ],
           backgroundColor: ["#007bff","#28a745","#ffc107","#dc3545","#17a2b8","#6f42c1"],
           borderRadius: 6
         }]
@@ -214,13 +182,13 @@
         responsive: true,
         plugins: {
           legend: { display: false },
-          title: { display: true, text: `Progress (${formatDate(date)})`, font: { size: 18 } }
+          title: { display: true, text: `Progress (${formatDate(selectedDate)})`, font: { size: 18 } }
         },
         scales: { y: { beginAtZero: true } }
       };
 
       if (chart) chart.destroy();
-      chart = new Chart(chartCanvas, { type: 'bar', data: chartData, options });
+      chart = new Chart(ctx, { type: 'bar', data: chartData, options });
     }
   </script>
 </body>
