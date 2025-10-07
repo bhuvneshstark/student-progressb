@@ -2,107 +2,49 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>eSaral Report Portal</title>
+  <title>Student Progress Search</title>
   <style>
-    /* Login Page Styles */
-    body.login-page {
-      font-family: 'Inter', sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0;
-      padding: 20px;
-    }
-    
-    .login-container {
-      background: white;
-      border-radius: 20px;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-      overflow: hidden;
-      max-width: 400px;
-      width: 100%;
-    }
-    
-    .login-header {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      padding: 40px 30px;
-      text-align: center;
-    }
-    
-    .login-header h1 {
-      font-weight: 700;
-      font-size: 28px;
-      margin: 0;
-    }
-    
-    .login-header p {
-      opacity: 0.9;
-      margin: 10px 0 0 0;
-      font-size: 16px;
-    }
-    
-    .login-body {
-      padding: 40px 30px;
-    }
-    
-    .form-control {
-      border: 2px solid #e9ecef;
-      border-radius: 12px;
-      padding: 15px 20px;
-      font-size: 16px;
-      transition: all 0.3s ease;
-    }
-    
-    .form-control:focus {
-      border-color: #667eea;
-      box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
-    }
-    
-    .btn-login {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      border: none;
-      border-radius: 12px;
-      padding: 15px 30px;
-      font-size: 16px;
-      font-weight: 600;
-      color: white;
-      width: 100%;
-      transition: all 0.3s ease;
-    }
-    
-    .btn-login:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
-    }
-
-    /* Main Application Styles */
-    body.main-app {
+    body {
       font-family: 'Segoe UI', sans-serif;
       background: #f5f7fa;
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 50px;
+      padding: 20px;
       margin: 0;
     }
-
-    .main-app {
-      display: none;
+    h1 { color: #333; margin-bottom: 20px; text-align: center; }
+    .search-box { 
+      display: flex; 
+      gap: 10px; 
+      margin-bottom: 20px; 
+      flex-wrap: wrap;
+      justify-content: center;
     }
-
-    h1 { color: #333; margin-bottom: 30px; }
-    .search-box { display: flex; gap: 10px; margin-bottom: 20px; }
-    input { padding: 10px; width: 300px; border: 1px solid #ccc; border-radius: 5px; font-size: 15px; }
-    button { padding: 10px 20px; border: none; background: #007BFF; color: white; border-radius: 5px; cursor: pointer; font-size: 15px; transition: background 0.3s ease; }
+    input { 
+      padding: 10px; 
+      width: 280px; 
+      max-width: 100%;
+      border: 1px solid #ccc; 
+      border-radius: 5px; 
+      font-size: 15px; 
+      box-sizing: border-box;
+    }
+    button { 
+      padding: 10px 20px; 
+      border: none; 
+      background: #007BFF; 
+      color: white; 
+      border-radius: 5px; 
+      cursor: pointer; 
+      font-size: 15px; 
+      transition: background 0.3s ease; 
+    }
     button:hover { background: #0056b3; }
-    select { padding: 10px; border: 1px solid #ccc; border-radius: 5px; font-size: 15px; }
     
     /* Student Info Table */
     .student-info-container {
-      width: 90%;
+      width: 95%;
       max-width: 900px;
       background: white;
       border-radius: 12px;
@@ -143,10 +85,12 @@
       margin-bottom: 20px;
       align-items: center;
       justify-content: center;
+      flex-wrap: wrap;
     }
     .date-filter label {
       font-weight: 600;
       color: #333;
+      white-space: nowrap;
     }
     
     /* Calendar Styles */
@@ -277,7 +221,7 @@
     }
     
     .table-container {
-      width: 90%;
+      width: 95%;
       max-width: 900px;
       background: white;
       border-radius: 12px;
@@ -305,18 +249,18 @@
     }
     
     .pdf-btn {
-      padding: 6px 12px;
+      padding: 8px 16px;
       border: none;
       background: #dc3545;
       color: white;
       border-radius: 4px;
       cursor: pointer;
-      font-size: 12px;
+      font-size: 14px;
       font-weight: 500;
       transition: all 0.3s ease;
       display: inline-flex;
       align-items: center;
-      gap: 4px;
+      gap: 6px;
     }
     
     .pdf-btn:hover {
@@ -334,23 +278,6 @@
       0% { opacity: 1; }
       50% { opacity: 0.8; }
       100% { opacity: 1; }
-    }
-    
-    .loading-spinner {
-      display: inline-block;
-      width: 20px;
-      height: 20px;
-      border: 3px solid #f3f3f3;
-      border-top: 3px solid #007BFF;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-      margin-right: 10px;
-      vertical-align: middle;
-    }
-    
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
     }
     
     .skeleton-loader {
@@ -375,43 +302,10 @@
       from { opacity: 0; transform: translateY(10px); }
       to { opacity: 1; transform: translateY(0); }
     }
-    
-    .slide-up {
-      animation: slideUp 0.4s ease-out;
-    }
-    
-    @keyframes slideUp {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    
-    .bounce {
-      animation: bounce 0.6s ease;
-    }
-    
-    @keyframes bounce {
-      0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
-      40% { transform: translateY(-5px); }
-      60% { transform: translateY(-3px); }
-    }
-    
-    /* Lighter Pulse Glow Effect */
-    .pulse-glow-subtle {
-      animation: pulseGlowSubtle 4s ease-in-out infinite;
-    }
-    
-    @keyframes pulseGlowSubtle {
-      0%, 100% { 
-        box-shadow: 0 0 1px rgba(0,123,255,0.05);
-      }
-      50% { 
-        box-shadow: 0 0 3px rgba(0,123,255,0.15);
-      }
-    }
 
     /* Responsive Design */
     @media (max-width: 768px) {
-      body.main-app { padding: 20px; }
+      body { padding: 10px; }
       .search-box { flex-direction: column; align-items: center; }
       input { width: 100%; max-width: 300px; }
       .date-filter { flex-direction: column; gap: 10px; }
@@ -443,110 +337,37 @@
         padding: 6px 1px;
       }
     }
-
-    /* Header Styles */
-    .app-header {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      padding: 20px 0;
-      text-align: center;
-      margin-bottom: 30px;
-      width: 100%;
-    }
-
-    .app-header h1 {
-      color: white;
-      margin: 0;
-      font-size: 32px;
-    }
-
-    .app-header p {
-      margin: 10px 0 0 0;
-      opacity: 0.9;
-    }
-
-    .logout-btn {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      background: rgba(255,255,255,0.2);
-      border: 1px solid rgba(255,255,255,0.3);
-      color: white;
-      padding: 8px 16px;
-      border-radius: 20px;
-      cursor: pointer;
-      transition: all 0.3s ease;
-    }
-
-    .logout-btn:hover {
-      background: rgba(255,255,255,0.3);
-    }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 </head>
-<body class="login-page">
-  <!-- Login Page -->
-  <div class="login-container">
-    <div class="login-header">
-      <h1>eSaral Report Portal</h1>
-      <p>Access your academic progress reports</p>
-    </div>
-    
-    <div class="login-body">
-      <div id="loginSection">
-        <div class="mb-4">
-          <label for="email" class="form-label fw-semibold">Enter Registered Email</label>
-          <input 
-            type="email" 
-            class="form-control" 
-            id="email" 
-            placeholder="name@example.com"
-          >
-        </div>
-        
-        <button class="btn btn-login" onclick="handleLogin()">
-          Continue with Email
-        </button>
-      </div>
-    </div>
+<body>
+  <h1 class="fade-in">Student Daily Report</h1>
+
+  <div class="search-box fade-in">
+    <input type="text" id="search" placeholder="Enter Name or Email" onkeypress="handleKeyPress(event)" class="pulse-glow-subtle">
+    <button onclick="searchData()" class="bounce">Search</button>
   </div>
 
-  <!-- Main Application (Hidden initially) -->
-  <div id="mainApp" class="main-app" style="display: none;">
-    <div class="app-header">
-      <button class="logout-btn" onclick="handleLogout()">
-        Logout
-      </button>
-      <h1>Student Daily Report</h1>
-      <p>eSaral Report Portal - Track Academic Progress</p>
+  <div class="student-info-container" id="studentInfoContainer" style="display: none;"></div>
+  <div class="date-filter" id="dateFilter" style="display: none;">
+    <label>From Date:</label>
+    <div class="calendar-container">
+      <input type="text" id="fromDate" class="calendar-input" placeholder="Select date" readonly>
+      <div class="calendar-dropdown" id="fromCalendar"></div>
     </div>
+    <label>To Date:</label>
+    <div class="calendar-container">
+      <input type="text" id="toDate" class="calendar-input" placeholder="Select date" readonly>
+      <div class="calendar-dropdown" id="toCalendar"></div>
+    </div>
+  </div>
+  <div class="table-container" id="output"></div>
+  <div class="pdf-download-container" id="pdfDownloadContainer" style="display: none;"></div>
 
-    <div class="search-box fade-in">
-      <input type="text" id="search" placeholder="Enter Name or Email" onkeypress="handleKeyPress(event)" class="pulse-glow-subtle">
-      <button onclick="searchData()" class="bounce">Search</button>
-    </div>
-
-    <div class="student-info-container" id="studentInfoContainer" style="display: none;"></div>
-    <div class="date-filter" id="dateFilter" style="display: none;">
-      <label>From Date:</label>
-      <div class="calendar-container">
-        <input type="text" id="fromDate" class="calendar-input" placeholder="Select date" readonly>
-        <div class="calendar-dropdown" id="fromCalendar"></div>
-      </div>
-      <label>To Date:</label>
-      <div class="calendar-container">
-        <input type="text" id="toDate" class="calendar-input" placeholder="Select date" readonly>
-        <div class="calendar-dropdown" id="toCalendar"></div>
-      </div>
-    </div>
-    <div class="table-container" id="output"></div>
-    <div class="pdf-download-container" id="pdfDownloadContainer" style="display: none;"></div>
-
-    <div style="width:90%; max-width:900px; margin:40px auto;">
-      <canvas id="progressChart"></canvas>
-    </div>
+  <div style="width:95%; max-width:900px; margin:20px auto;">
+    <canvas id="progressChart"></canvas>
   </div>
 
   <script>
@@ -560,69 +381,7 @@
     let availableDates = [];
     let fromCalendarDate = new Date();
     let toCalendarDate = new Date();
-    let currentUserEmail = '';
 
-    // Login Functions
-    function handleLogin() {
-      const email = document.getElementById('email').value.trim();
-      
-      if (!email) {
-        alert('Please enter your registered email address');
-        return;
-      }
-      
-      if (!isValidEmail(email)) {
-        alert('Please enter a valid email address');
-        return;
-      }
-      
-      // Store user email and switch to main application
-      currentUserEmail = email;
-      document.body.className = 'main-app';
-      document.querySelector('.login-page').style.display = 'none';
-      document.getElementById('mainApp').style.display = 'block';
-      
-      console.log('User logged in with email:', email);
-    }
-    
-    function handleLogout() {
-      if (confirm('Are you sure you want to logout?')) {
-        document.body.className = 'login-page';
-        document.getElementById('mainApp').style.display = 'none';
-        document.querySelector('.login-page').style.display = 'block';
-        document.getElementById('email').value = '';
-        currentUserEmail = '';
-        
-        // Reset application state
-        resetApplication();
-      }
-    }
-    
-    function resetApplication() {
-      document.getElementById('studentInfoContainer').style.display = 'none';
-      document.getElementById('dateFilter').style.display = 'none';
-      document.getElementById('pdfDownloadContainer').style.display = 'none';
-      document.getElementById('output').innerHTML = '';
-      
-      if (chart) { 
-        chart.destroy(); 
-        chart = null; 
-      }
-      
-      allRecords = [];
-      filteredRecords = [];
-      currentStudentName = '';
-      currentStudentEmail = '';
-      selectedRowDate = '';
-      availableDates = [];
-    }
-    
-    function isValidEmail(email) {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      return emailRegex.test(email);
-    }
-
-    // Student Progress Application Functions
     function handleKeyPress(event) {
       if (event.key === 'Enter') {
         searchData();
@@ -794,16 +553,400 @@
       }
     }
 
-    // ... (rest of your existing calendar and student progress functions remain the same)
-    // [Include all the remaining functions from your previous code: setupCalendars, toggleCalendar, closeAllCalendars, renderCalendar, changeMonth, changeMonthYear, selectDate, getLatestDate, filterTableByDate, buildTable, selectRow, updateChartForSelectedDate, downloadPDF]
+    function setupCalendars() {
+      // Setup calendar event listeners
+      document.getElementById('fromDate').addEventListener('click', function() {
+        toggleCalendar('fromCalendar', this);
+      });
+      
+      document.getElementById('toDate').addEventListener('click', function() {
+        toggleCalendar('toCalendar', this);
+      });
 
-    // Initialize the application
+      // Close calendars when clicking outside
+      document.addEventListener('click', function(event) {
+        if (!event.target.closest('.calendar-container')) {
+          closeAllCalendars();
+        }
+      });
+
+      // Initialize calendars
+      renderCalendar('fromCalendar', fromCalendarDate, 'from');
+      renderCalendar('toCalendar', toCalendarDate, 'to');
+    }
+
+    function toggleCalendar(calendarId, inputElement) {
+      closeAllCalendars();
+      const calendar = document.getElementById(calendarId);
+      calendar.style.display = calendar.style.display === 'block' ? 'none' : 'block';
+      
+      // Re-render calendar to ensure it's up to date
+      if (calendarId === 'fromCalendar') {
+        renderCalendar('fromCalendar', fromCalendarDate, 'from');
+      } else {
+        renderCalendar('toCalendar', toCalendarDate, 'to');
+      }
+    }
+
+    function closeAllCalendars() {
+      document.querySelectorAll('.calendar-dropdown').forEach(cal => {
+        cal.style.display = 'none';
+      });
+    }
+
+    function renderCalendar(calendarId, currentDate, type) {
+      const calendar = document.getElementById(calendarId);
+      const year = currentDate.getFullYear();
+      const month = currentDate.getMonth();
+
+      // Calendar header
+      const monthNames = ["January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"];
+      
+      // Generate year options (5 years back and forward)
+      const currentYear = new Date().getFullYear();
+      const yearOptions = [];
+      for (let y = currentYear - 5; y <= currentYear + 5; y++) {
+        yearOptions.push(y);
+      }
+
+      let html = `
+        <div class="calendar-header">
+          <button class="calendar-nav" onclick="changeMonth('${calendarId}', -1)">‹</button>
+          <div class="calendar-month-year">
+            <select class="calendar-select" onchange="changeMonthYear('${calendarId}', this.value, 'month')">
+      `;
+      
+      // Month dropdown
+      for (let m = 0; m < 12; m++) {
+        html += `<option value="${m}" ${m === month ? 'selected' : ''}>${monthNames[m]}</option>`;
+      }
+      
+      html += `
+            </select>
+            <select class="calendar-select" onchange="changeMonthYear('${calendarId}', this.value, 'year')">
+      `;
+      
+      // Year dropdown
+      yearOptions.forEach(y => {
+        html += `<option value="${y}" ${y === year ? 'selected' : ''}>${y}</option>`;
+      });
+      
+      html += `
+            </select>
+          </div>
+          <button class="calendar-nav" onclick="changeMonth('${calendarId}', 1)">›</button>
+        </div>
+        <div class="calendar-grid">
+          <div class="calendar-day-header">Sun</div>
+          <div class="calendar-day-header">Mon</div>
+          <div class="calendar-day-header">Tue</div>
+          <div class="calendar-day-header">Wed</div>
+          <div class="calendar-day-header">Thu</div>
+          <div class="calendar-day-header">Fri</div>
+          <div class="calendar-day-header">Sat</div>
+      `;
+
+      // Get first day of month and total days
+      const firstDay = new Date(year, month, 1).getDay();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+      // Previous month days
+      const prevMonthLastDay = new Date(year, month, 0).getDate();
+      for (let i = firstDay - 1; i >= 0; i--) {
+        html += `<div class="calendar-day other-month">${prevMonthLastDay - i}</div>`;
+      }
+
+      // Current month days
+      for (let day = 1; day <= daysInMonth; day++) {
+        const dateObj = new Date(year, month, day);
+        const formattedDate = formatDateForInput(dateObj);
+        const calendarDateStr = formatDateForCalendar(dateObj);
+        
+        const isAvailable = availableDates.some(availableDate => {
+          const availableDateObj = parseDate(availableDate);
+          return availableDateObj.getDate() === day && 
+                 availableDateObj.getMonth() === month && 
+                 availableDateObj.getFullYear() === year;
+        });
+        
+        const input = type === 'from' ? document.getElementById('fromDate') : document.getElementById('toDate');
+        const isSelected = input.value === formattedDate;
+
+        let dayClass = 'calendar-day';
+        if (!isAvailable) dayClass += ' disabled';
+        else if (isSelected) dayClass += ' selected';
+        else dayClass += ' available';
+
+        html += `<div class="${dayClass}" onclick="selectDate('${type}', '${formattedDate}')">${day}</div>`;
+      }
+
+      // Next month days
+      const totalCells = 42; // 6 weeks
+      const remainingCells = totalCells - (firstDay + daysInMonth);
+      for (let day = 1; day <= remainingCells; day++) {
+        html += `<div class="calendar-day other-month">${day}</div>`;
+      }
+
+      html += `</div>`;
+      calendar.innerHTML = html;
+    }
+
+    function changeMonth(calendarId, direction) {
+      if (calendarId === 'fromCalendar') {
+        fromCalendarDate.setMonth(fromCalendarDate.getMonth() + direction);
+        renderCalendar('fromCalendar', fromCalendarDate, 'from');
+      } else {
+        toCalendarDate.setMonth(toCalendarDate.getMonth() + direction);
+        renderCalendar('toCalendar', toCalendarDate, 'to');
+      }
+    }
+
+    function changeMonthYear(calendarId, value, type) {
+      if (calendarId === 'fromCalendar') {
+        if (type === 'month') {
+          fromCalendarDate.setMonth(parseInt(value));
+        } else {
+          fromCalendarDate.setFullYear(parseInt(value));
+        }
+        renderCalendar('fromCalendar', fromCalendarDate, 'from');
+      } else {
+        if (type === 'month') {
+          toCalendarDate.setMonth(parseInt(value));
+        } else {
+          toCalendarDate.setFullYear(parseInt(value));
+        }
+        renderCalendar('toCalendar', toCalendarDate, 'to');
+      }
+    }
+
+    function selectDate(type, date) {
+      const input = type === 'from' ? document.getElementById('fromDate') : document.getElementById('toDate');
+      input.value = date;
+      closeAllCalendars();
+      filterTableByDate();
+    }
+
+    function getLatestDate() {
+      if (!allRecords.length) return null;
+      
+      const dateKey = findKey(allRecords[0], "date");
+      const dates = allRecords.map(r => parseDate(r[dateKey]));
+      
+      const latestTimestamp = Math.max(...dates.map(d => d.getTime()));
+      const latestRecord = allRecords.find(record => {
+        const recordDate = parseDate(record[dateKey]);
+        return recordDate.getTime() === latestTimestamp;
+      });
+      
+      return latestRecord ? latestRecord[dateKey] : null;
+    }
+
+    function filterTableByDate() {
+      const fromDateInput = document.getElementById("fromDate").value;
+      const toDateInput = document.getElementById("toDate").value;
+      const dateKey = findKey(allRecords[0], "date");
+
+      if (!fromDateInput && !toDateInput) {
+        // When no dates selected, show only the latest date
+        const latestDate = getLatestDate();
+        const latestRecord = allRecords.find(record => record[dateKey] === latestDate);
+        filteredRecords = latestRecord ? [latestRecord] : [];
+        selectedRowDate = latestDate || '';
+      } else {
+        filteredRecords = allRecords.filter(record => {
+          const recordDate = parseDate(record[dateKey]);
+          const from = fromDateInput ? parseDate(fromDateInput) : new Date(-8640000000000000);
+          const to = toDateInput ? parseDate(toDateInput) : new Date(8640000000000000);
+          
+          return recordDate >= from && recordDate <= to;
+        });
+        
+        // Auto-select the latest date from filtered results
+        if (filteredRecords.length > 0) {
+          const filteredDates = filteredRecords.map(r => parseDate(r[dateKey]));
+          const latestFilteredTimestamp = Math.max(...filteredDates.map(d => d.getTime()));
+          const latestFilteredRecord = filteredRecords.find(record => 
+            parseDate(record[dateKey]).getTime() === latestFilteredTimestamp
+          );
+          selectedRowDate = latestFilteredRecord ? latestFilteredRecord[dateKey] : '';
+        } else {
+          selectedRowDate = '';
+        }
+      }
+      
+      buildTable();
+      
+      if (selectedRowDate) {
+        updateChartForSelectedDate();
+      } else if (chart) {
+        chart.destroy();
+        chart = null;
+      }
+    }
+
+    function buildTable() {
+      const output = document.getElementById("output");
+      const dateKey = findKey(allRecords[0], "date");
+
+      if (filteredRecords.length === 0) {
+        output.innerHTML = "<div class='no-data pulse'>No records found for selected date range</div>";
+        return;
+      }
+
+      const html = `
+        <table class="fade-in">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Total Classes</th>
+              <th>Physics</th>
+              <th>Chemistry</th>
+              <th>Maths</th>
+              <th>Tests</th>
+              <th>Study Hours</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${filteredRecords.map(record => {
+              const isSelected = record[dateKey] === selectedRowDate ? 'selected' : '';
+              return `
+                <tr class="${isSelected}" onclick="selectRow('${record[dateKey]}')">
+                  <td>${formatDate(record[dateKey])}</td>
+                  <td>${record[findKey(record, "total classes attended")] || 0}</td>
+                  <td>${record[findKey(record, "physics questions attempted")] || 0}</td>
+                  <td>${record[findKey(record, "chemistry questions attempted")] || 0}</td>
+                  <td>${record[findKey(record, "maths questions attempted")] || 0}</td>
+                  <td>${record[findKey(record, "total tests taken")] || 0}</td>
+                  <td>${record[findKey(record, "study hours")] || 0}</td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      `;
+      output.innerHTML = html;
+    }
+
+    function selectRow(date) {
+      selectedRowDate = date;
+      buildTable();
+      updateChartForSelectedDate();
+    }
+
+    function updateChartForSelectedDate() {
+      if (!selectedRowDate) return;
+      
+      const dateKey = findKey(allRecords[0], "date");
+      const row = allRecords.find(r => r[dateKey] === selectedRowDate);
+      if (!row) return;
+
+      const ctx = document.getElementById("progressChart").getContext("2d");
+      const chartData = {
+        labels: ["Total Classes", "Physics", "Chemistry", "Maths", "Tests", "Study Hours"],
+        datasets: [{
+          label: "Student Progress",
+          data: [
+            Number(row[findKey(row, "total classes attended")] || 0),
+            Number(row[findKey(row, "physics questions attempted")] || 0),
+            Number(row[findKey(row, "chemistry questions attempted")] || 0),
+            Number(row[findKey(row, "maths questions attempted")] || 0),
+            Number(row[findKey(row, "total tests taken")] || 0),
+            Number(row[findKey(row, "study hours")] || 0)
+          ],
+          backgroundColor: ["#007bff","#28a745","#ffc107","#dc3545","#17a2b8","#6f42c1"],
+          borderRadius: 6
+        }]
+      };
+
+      const options = {
+        responsive: true,
+        plugins: {
+          legend: { display: false },
+          title: { 
+            display: true, 
+            text: `Progress (${formatDate(selectedRowDate)})`, 
+            font: { size: 18 },
+            color: '#333'
+          }
+        },
+        scales: { y: { beginAtZero: true } },
+        animation: {
+          duration: 1000,
+          easing: 'easeOutQuart'
+        }
+      };
+
+      if (chart) chart.destroy();
+      chart = new Chart(ctx, { type: 'bar', data: chartData, options });
+    }
+
+    function downloadPDF() {
+      if (!filteredRecords.length) return;
+
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      const dateKey = findKey(allRecords[0], "date");
+
+      doc.setFontSize(20);
+      doc.setTextColor(0, 0, 0);
+      doc.text('Student Progress Report', 105, 15, { align: 'center' });
+
+      doc.setFontSize(12);
+      doc.text(`Student: ${currentStudentName}`, 20, 25);
+      doc.text(`Email: ${currentStudentEmail}`, 20, 32);
+      
+      const fromDateInput = document.getElementById("fromDate").value;
+      const toDateInput = document.getElementById("toDate").value;
+      let dateRangeText = 'Latest Date Only';
+      if (fromDateInput && toDateInput) {
+        dateRangeText = `From ${fromDateInput} to ${toDateInput}`;
+      } else if (fromDateInput) {
+        dateRangeText = `From ${fromDateInput}`;
+      } else if (toDateInput) {
+        dateRangeText = `Until ${toDateInput}`;
+      }
+      doc.text(`Date Range: ${dateRangeText}`, 20, 39);
+      doc.text(`Generated: ${new Date().toLocaleDateString()}`, 20, 46);
+
+      const tableColumn = ['Date', 'Total Classes', 'Physics', 'Chemistry', 'Maths', 'Tests', 'Study Hours'];
+      const tableRows = [];
+
+      filteredRecords.forEach(record => {
+        const rowData = [
+          formatDate(record[dateKey]),
+          record[findKey(record, "total classes attended")] || 0,
+          record[findKey(record, "physics questions attempted")] || 0,
+          record[findKey(record, "chemistry questions attempted")] || 0,
+          record[findKey(record, "maths questions attempted")] || 0,
+          record[findKey(record, "total tests taken")] || 0,
+          record[findKey(record, "study hours")] || 0
+        ];
+        tableRows.push(rowData);
+      });
+
+      doc.autoTable({
+        head: [tableColumn],
+        body: tableRows,
+        startY: 55,
+        theme: 'grid',
+        styles: { fontSize: 10, cellPadding: 3 },
+        headStyles: { fillColor: [0, 123, 255] }
+      });
+
+      const fileName = `${currentStudentName.replace(/\s+/g, '_')}_progress_${fromDateInput || 'latest'}_to_${toDateInput || 'latest'}.pdf`;
+      doc.save(fileName);
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
-      document.getElementById('email').focus();
+      const searchInput = document.getElementById('search');
+      if (searchInput) {
+        setTimeout(() => {
+          searchInput.classList.add('pulse-glow-subtle');
+        }, 1000);
+      }
     });
-
-    // Include all the remaining calendar and data processing functions from your original code here
-    // [The functions would be exactly the same as in your previous implementation]
   </script>
 </body>
 </html>
+
